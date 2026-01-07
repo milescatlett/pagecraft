@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}CMS Dashboard{% endblock %}
+
+{% block body %}
+<div class="cms-container">
+    <nav class="cms-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-compass"></i> CMS Builder</h4>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="active"><a href="/"><i class="bi bi-grid"></i> Dashboard</a></li>
+            {% if current_user.is_admin %}
+            <li><a href="/users"><i class="bi bi-people"></i> Users</a></li>
+            {% endif %}
+            <li><a href="/docs"><i class="bi bi-book"></i> Documentation</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ current_user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm w-100">
+                <i class="bi bi-box-arrow-left"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="cms-main">
+        <div class="cms-header">
+            <h1>Your Sites</h1>
+            <button class="btn btn-primary" onclick="showCreateSiteModal()">
+                <i class="bi bi-plus-circle"></i> Create New Site
+            </button>
+        </div>
+
+        <div class="cms-content">
+            {% if sites %}
+                <div class="row g-4">
+                    {% for site in sites %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="site-card">
+                            <div class="site-card-header">
+                                <h5>{{ site.name }}</h5>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <div class="site-card-body">
+                                {% if site.domain %}
+                                <p class="text-muted"><i class="bi bi-globe"></i> {{ site.domain }}</p>
+                                {% else %}
+                                <p class="text-muted"><i class="bi bi-globe"></i> No domain set</p>
+                                {% endif %}
+                                <div class="site-stats">
+                                    <span><i class="bi bi-file-earmark"></i> {{ site.pages|length }} Pages</span>
+                                    <span><i class="bi bi-menu-button"></i> {{ site.menus|length }} Menus</span>
+                                </div>
+                            </div>
+                            <div class="site-card-footer">
+                                <a href="/site/{{ site.id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Manage
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-box-seam"></i>
+                    <h3>No sites yet</h3>
+                    <p>Create your first site to get started with building amazing web experiences.</p>
+                    <button class="btn btn-primary" onclick="showCreateSiteModal()">
+                        <i class="bi bi-plus-circle"></i> Create Your First Site
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Create Site Modal -->
+<div class="modal fade" id="createSiteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Site</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createSiteForm">
+                    <div class="mb-3">
+                        <label for="siteName" class="form-label">Site Name</label>
+                        <input type="text" class="form-control" id="siteName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="siteDomain" class="form-label">Domain (optional)</label>
+                        <input type="text" class="form-control" id="siteDomain" placeholder="example.com">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createSite()">Create Site</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showCreateSiteModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createSiteModal'));
+    modal.show();
+}
+
+function createSite() {
+    const name = document.getElementById('siteName').value;
+    const domain = document.getElementById('siteDomain').value;
+
+    if (!name) {
+        alert('Please enter a site name');
+        return;
+    }
+
+    fetch('/site/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, domain })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/site/' + data.site_id;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create site');
+    });
+}
+</script>
+{% endblock %}

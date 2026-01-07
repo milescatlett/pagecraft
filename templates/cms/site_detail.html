@@ -1,0 +1,790 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.name }} - Site Management{% endblock %}
+
+{% block body %}
+<div class="cms-container">
+    <nav class="cms-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-compass"></i> CMS Builder</h4>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="/"><i class="bi bi-grid"></i> Dashboard</a></li>
+            {% if current_user.is_admin %}
+            <li><a href="/users"><i class="bi bi-people"></i> Users</a></li>
+            {% endif %}
+            <li class="active"><a href="/site/{{ site.id }}"><i class="bi bi-globe"></i> {{ site.name }}</a></li>
+            <li><a href="/docs"><i class="bi bi-book"></i> Documentation</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ current_user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm w-100">
+                <i class="bi bi-box-arrow-left"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="cms-main">
+        <div class="cms-header">
+            <div>
+                <h1>{{ site.name }}</h1>
+                <p class="text-muted">Manage pages, menus, and footers for your site</p>
+            </div>
+        </div>
+
+        <div class="cms-content">
+            <!-- Domain Configuration Section -->
+            <div class="section-card mb-4">
+                <div class="section-header">
+                    <h3><i class="bi bi-globe2"></i> Domain Configuration</h3>
+                    <button class="btn btn-outline-primary" onclick="showDomainModal()">
+                        <i class="bi bi-pencil"></i> Configure Domain
+                    </button>
+                </div>
+                <div class="section-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Custom Domain</h6>
+                            {% if site.domain %}
+                            <p class="mb-1">
+                                <code class="fs-5">{{ site.domain }}</code>
+                                <a href="http://{{ site.domain }}" target="_blank" class="ms-2 text-decoration-none">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </p>
+                            <small class="text-success"><i class="bi bi-check-circle"></i> Domain configured</small>
+                            {% else %}
+                            <p class="text-muted mb-0">No custom domain configured</p>
+                            <small class="text-muted">Click "Configure Domain" to set up a custom domain</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Default URL</h6>
+                            <p class="mb-1">
+                                <code>/site/{{ site.id }}/&lt;page-slug&gt;</code>
+                            </p>
+                            <small class="text-muted">Always accessible via this URL pattern</small>
+                        </div>
+                    </div>
+                    {% if site.domain %}
+                    <hr>
+                    <div class="alert alert-info mb-0">
+                        <h6><i class="bi bi-info-circle"></i> DNS Setup Instructions</h6>
+                        <p class="mb-2">To use your custom domain, configure your DNS with one of these options:</p>
+                        <ul class="mb-0">
+                            <li><strong>A Record:</strong> Point <code>{{ site.domain }}</code> to your server's IP address</li>
+                            <li><strong>CNAME Record:</strong> Point <code>{{ site.domain }}</code> to your main domain</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- Pages Section -->
+            <div class="section-card mb-4">
+                <div class="section-header">
+                    <h3><i class="bi bi-file-earmark-text"></i> Pages</h3>
+                    <button class="btn btn-primary" onclick="showCreatePageModal()">
+                        <i class="bi bi-plus"></i> New Page
+                    </button>
+                </div>
+                <div class="section-body">
+                    {% if pages %}
+                        <div class="page-tree">
+                            {% macro render_page_tree(page, level=0) %}
+                            <div class="page-tree-item" style="margin-left: {{ level * 24 }}px;">
+                                <div class="page-tree-row d-flex align-items-center py-2 px-2 {% if page.children|length > 0 %}has-children{% endif %}">
+                                    <div class="page-tree-toggle me-2" style="width: 20px;">
+                                        {% if page.children|length > 0 %}
+                                        <i class="bi bi-chevron-down toggle-icon" onclick="toggleChildren(this)" style="cursor: pointer;"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="page-tree-icon me-2">
+                                        {% if page.children|length > 0 %}
+                                        <i class="bi bi-folder2-open text-warning"></i>
+                                        {% else %}
+                                        <i class="bi bi-file-earmark text-primary"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="page-tree-title flex-grow-1">
+                                        <strong>{{ page.title }}</strong>
+                                        {% if page.published %}
+                                        <span class="badge bg-success ms-2">Published</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary ms-2">Draft</span>
+                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">
+                                            <code>/{{ page.get_full_path() }}</code>
+                                            {% if page.published %}
+                                            <a href="/site/{{ site.id }}/{{ page.get_full_path() }}" target="_blank" class="ms-1">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div class="page-tree-actions">
+                                        <button class="btn btn-sm btn-outline-success" onclick="showCreatePageModal({{ page.id }})" title="Add child page">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="showCopyPageModal({{ page.id }}, '{{ page.title|e }}', '{{ page.slug }}', {{ page.children|length }})" title="Copy page">
+                                            <i class="bi bi-copy"></i>
+                                        </button>
+                                        <a href="/page/{{ page.id }}/edit" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="/preview/{{ page.id }}" target="_blank" class="btn btn-sm btn-outline-info" title="Preview">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deletePage({{ page.id }})" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% if page.children|length > 0 %}
+                                <div class="page-tree-children">
+                                    {% for child in page.children %}
+                                        {{ render_page_tree(child, level + 1) }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endmacro %}
+
+                            {% set root_pages = pages|selectattr('parent_id', 'none')|list %}
+                            {% for page in root_pages %}
+                                {{ render_page_tree(page) }}
+                            {% endfor %}
+                        </div>
+                        <style>
+                            .page-tree-item {
+                                border-left: 2px solid #e9ecef;
+                            }
+                            .page-tree-item:first-child {
+                                border-left: none;
+                            }
+                            .page-tree-row {
+                                border-radius: 4px;
+                                transition: background-color 0.15s;
+                            }
+                            .page-tree-row:hover {
+                                background-color: #f8f9fa;
+                            }
+                            .page-tree-children {
+                                border-left: 2px solid #dee2e6;
+                                margin-left: 10px;
+                            }
+                            .toggle-icon {
+                                transition: transform 0.2s;
+                            }
+                            .toggle-icon.collapsed {
+                                transform: rotate(-90deg);
+                            }
+                            .page-tree-children.collapsed {
+                                display: none;
+                            }
+                        </style>
+                    {% else %}
+                        <div class="empty-state-small">
+                            <i class="bi bi-file-earmark"></i>
+                            <p>No pages yet. Create your first page to get started.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Menus Section -->
+            <div class="section-card mb-4">
+                <div class="section-header">
+                    <h3><i class="bi bi-menu-button-wide"></i> Menus</h3>
+                    <button class="btn btn-primary" onclick="showCreateMenuModal()">
+                        <i class="bi bi-plus"></i> New Menu
+                    </button>
+                </div>
+                <div class="section-body">
+                    {% if menus %}
+                        <div class="row g-3">
+                            {% for menu in menus %}
+                            <div class="col-md-6">
+                                <div class="menu-card">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h5>{{ menu.name }}</h5>
+                                            <span class="badge bg-info">{{ menu.position|capitalize }}</span>
+                                            {% if menu.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/menu/{{ menu.id }}/edit" class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" onclick="deleteMenu({{ menu.id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mb-0 mt-2">
+                                        <small>{{ menu.menu_items|length }} items</small>
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state-small">
+                            <i class="bi bi-menu-button"></i>
+                            <p>No menus yet. Create a menu to add navigation to your site.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footers Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="bi bi-layout-text-sidebar-reverse"></i> Footers</h3>
+                    <button class="btn btn-primary" onclick="showCreateFooterModal()">
+                        <i class="bi bi-plus"></i> New Footer
+                    </button>
+                </div>
+                <div class="section-body">
+                    {% if footers %}
+                        <div class="row g-3">
+                            {% for footer in footers %}
+                            <div class="col-md-6">
+                                <div class="menu-card">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h5>{{ footer.name }}</h5>
+                                            {% if footer.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/footer/{{ footer.id }}/edit" class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" onclick="deleteFooter({{ footer.id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state-small">
+                            <i class="bi bi-layout-text-sidebar-reverse"></i>
+                            <p>No footers yet. Create a footer to add to your site.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Create Page Modal -->
+<div class="modal fade" id="createPageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Page</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPageForm">
+                    <div class="mb-3">
+                        <label for="pageParent" class="form-label">Parent Page</label>
+                        <select class="form-select" id="pageParent">
+                            <option value="">No parent (root level)</option>
+                            {% macro render_page_options(page, prefix='') %}
+                                <option value="{{ page.id }}">{{ prefix }}{{ page.title }}</option>
+                                {% for child in page.children %}
+                                    {{ render_page_options(child, prefix + '— ') }}
+                                {% endfor %}
+                            {% endmacro %}
+                            {% for page in pages if not page.parent_id %}
+                                {{ render_page_options(page) }}
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Select a parent to create a nested page</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pageTitle" class="form-label">Page Title</label>
+                        <input type="text" class="form-control" id="pageTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pageSlug" class="form-label">Slug</label>
+                        <input type="text" class="form-control" id="pageSlug" required>
+                        <small class="text-muted">URL-friendly version (e.g., about-us)</small>
+                    </div>
+                    <div id="fullPathPreview" class="alert alert-info py-2" style="display: none;">
+                        <small><strong>Full URL path:</strong> <code id="fullPathText"></code></small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createPage()">Create Page</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Menu Modal -->
+<div class="modal fade" id="createMenuModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Menu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createMenuForm">
+                    <div class="mb-3">
+                        <label for="menuName" class="form-label">Menu Name</label>
+                        <input type="text" class="form-control" id="menuName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="menuPosition" class="form-label">Position</label>
+                        <select class="form-select" id="menuPosition">
+                            <option value="top">Top</option>
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createMenu()">Create Menu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Footer Modal -->
+<div class="modal fade" id="createFooterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Footer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createFooterForm">
+                    <div class="mb-3">
+                        <label for="footerName" class="form-label">Footer Name</label>
+                        <input type="text" class="form-control" id="footerName" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createFooter()">Create Footer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Domain Configuration Modal -->
+<div class="modal fade" id="domainModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configure Custom Domain</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="domainForm">
+                    <div class="mb-3">
+                        <label for="siteDomain" class="form-label">Custom Domain</label>
+                        <input type="text" class="form-control" id="siteDomain" value="{{ site.domain or '' }}" placeholder="example.com">
+                        <small class="text-muted">Enter your domain without http:// or https://</small>
+                    </div>
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-exclamation-triangle"></i> Important</h6>
+                        <p class="mb-0">After saving, you'll need to:</p>
+                        <ol class="mb-0 mt-2">
+                            <li>Point your domain's DNS to this server</li>
+                            <li>Configure SSL/HTTPS (recommended)</li>
+                            <li>Ensure your server is configured to accept the domain</li>
+                        </ol>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDomain()">Save Domain</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Copy Page Modal -->
+<div class="modal fade" id="copyPageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-copy"></i> Copy Page</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="copyPageForm">
+                    <input type="hidden" id="copyPageId">
+                    <div class="mb-3">
+                        <label for="copyPageTitle" class="form-label">New Page Title</label>
+                        <input type="text" class="form-control" id="copyPageTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="copyPageSlug" class="form-label">New Slug</label>
+                        <input type="text" class="form-control" id="copyPageSlug" required>
+                        <small class="text-muted">URL-friendly version (must be unique)</small>
+                    </div>
+                    <div class="mb-3" id="includeChildrenContainer" style="display: none;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeChildren">
+                            <label class="form-check-label" for="includeChildren">
+                                <strong>Include all child pages</strong>
+                            </label>
+                        </div>
+                        <small class="text-muted ms-4" id="childCountText"></small>
+                    </div>
+                    <div class="alert alert-info py-2">
+                        <small><i class="bi bi-info-circle"></i> Copied pages will be created as drafts (unpublished).</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="copyPage()">
+                    <i class="bi bi-copy"></i> Copy Page
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const siteId = {{ site.id }};
+
+// Page paths for preview
+const pagePaths = {
+    {% for page in pages %}
+    {{ page.id }}: "{{ page.get_full_path() }}",
+    {% endfor %}
+};
+
+// Auto-generate slug from title and update path preview
+document.addEventListener('DOMContentLoaded', function() {
+    const titleInput = document.getElementById('pageTitle');
+    const slugInput = document.getElementById('pageSlug');
+    const parentSelect = document.getElementById('pageParent');
+
+    if (titleInput && slugInput) {
+        titleInput.addEventListener('input', function() {
+            const slug = this.value.toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
+            slugInput.value = slug;
+            updatePathPreview();
+        });
+
+        slugInput.addEventListener('input', updatePathPreview);
+        parentSelect.addEventListener('change', updatePathPreview);
+    }
+});
+
+function updatePathPreview() {
+    const slugInput = document.getElementById('pageSlug');
+    const parentSelect = document.getElementById('pageParent');
+    const preview = document.getElementById('fullPathPreview');
+    const pathText = document.getElementById('fullPathText');
+
+    const slug = slugInput.value;
+    const parentId = parentSelect.value;
+
+    if (slug) {
+        let fullPath = slug;
+        if (parentId && pagePaths[parentId]) {
+            fullPath = pagePaths[parentId] + '/' + slug;
+        }
+        pathText.textContent = '/' + fullPath;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function toggleChildren(icon) {
+    icon.classList.toggle('collapsed');
+    const children = icon.closest('.page-tree-item').querySelector('.page-tree-children');
+    if (children) {
+        children.classList.toggle('collapsed');
+    }
+}
+
+function showCreatePageModal(parentId = null) {
+    const parentSelect = document.getElementById('pageParent');
+    const titleInput = document.getElementById('pageTitle');
+    const slugInput = document.getElementById('pageSlug');
+    const preview = document.getElementById('fullPathPreview');
+
+    // Reset form
+    titleInput.value = '';
+    slugInput.value = '';
+    preview.style.display = 'none';
+
+    // Set parent if provided
+    if (parentId) {
+        parentSelect.value = parentId;
+    } else {
+        parentSelect.value = '';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('createPageModal'));
+    modal.show();
+}
+
+function showCreateMenuModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createMenuModal'));
+    modal.show();
+}
+
+function showCreateFooterModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createFooterModal'));
+    modal.show();
+}
+
+function createPage() {
+    const title = document.getElementById('pageTitle').value;
+    const slug = document.getElementById('pageSlug').value;
+    const parentId = document.getElementById('pageParent').value;
+
+    if (!title || !slug) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    fetch(`/site/${siteId}/page/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, slug, parent_id: parentId || null })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/page/' + data.page_id + '/edit';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create page');
+    });
+}
+
+function createMenu() {
+    const name = document.getElementById('menuName').value;
+    const position = document.getElementById('menuPosition').value;
+
+    if (!name) {
+        alert('Please enter a menu name');
+        return;
+    }
+
+    fetch(`/site/${siteId}/menu/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, position })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/menu/' + data.menu_id + '/edit';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create menu');
+    });
+}
+
+function createFooter() {
+    const name = document.getElementById('footerName').value;
+
+    if (!name) {
+        alert('Please enter a footer name');
+        return;
+    }
+
+    fetch(`/site/${siteId}/footer/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/footer/' + data.footer_id + '/edit';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create footer');
+    });
+}
+
+function deletePage(pageId) {
+    if (!confirm('Are you sure you want to delete this page?')) return;
+
+    fetch(`/page/${pageId}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete page');
+    });
+}
+
+function deleteMenu(menuId) {
+    if (!confirm('Are you sure you want to delete this menu?')) return;
+
+    fetch(`/menu/${menuId}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete menu');
+    });
+}
+
+function deleteFooter(footerId) {
+    if (!confirm('Are you sure you want to delete this footer?')) return;
+
+    fetch(`/footer/${footerId}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete footer');
+    });
+}
+
+function showDomainModal() {
+    const modal = new bootstrap.Modal(document.getElementById('domainModal'));
+    modal.show();
+}
+
+function saveDomain() {
+    const domain = document.getElementById('siteDomain').value.trim();
+
+    // Remove http:// or https:// if user included it
+    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+    fetch(`/site/${siteId}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: cleanDomain })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to update domain');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update domain');
+    });
+}
+
+function showCopyPageModal(pageId, pageTitle, pageSlug, childCount) {
+    document.getElementById('copyPageId').value = pageId;
+    document.getElementById('copyPageTitle').value = 'Copy of ' + pageTitle;
+    document.getElementById('copyPageSlug').value = pageSlug + '-copy';
+    document.getElementById('includeChildren').checked = false;
+
+    // Show/hide the "include children" option based on whether the page has children
+    const childrenContainer = document.getElementById('includeChildrenContainer');
+    const childCountText = document.getElementById('childCountText');
+
+    if (childCount > 0) {
+        childrenContainer.style.display = 'block';
+        childCountText.textContent = `This page has ${childCount} direct child page${childCount > 1 ? 's' : ''} that will also be copied.`;
+    } else {
+        childrenContainer.style.display = 'none';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('copyPageModal'));
+    modal.show();
+}
+
+function copyPage() {
+    const pageId = document.getElementById('copyPageId').value;
+    const title = document.getElementById('copyPageTitle').value;
+    const slug = document.getElementById('copyPageSlug').value;
+    const includeChildren = document.getElementById('includeChildren').checked;
+
+    if (!title || !slug) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    // Disable the button while processing
+    const copyBtn = document.querySelector('#copyPageModal .btn-primary');
+    const originalText = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Copying...';
+    copyBtn.disabled = true;
+
+    fetch(`/page/${pageId}/copy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, slug, include_children: includeChildren })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to copy page');
+            copyBtn.innerHTML = originalText;
+            copyBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to copy page');
+        copyBtn.innerHTML = originalText;
+        copyBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

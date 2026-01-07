@@ -1,0 +1,3836 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ page.title }} - Page Builder{% endblock %}
+
+{% block extra_css %}
+<style>
+    .builder-container {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .builder-sidebar {
+        width: 300px;
+        background: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+        overflow-y: auto;
+    }
+
+    .builder-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .builder-sidebar-right {
+        width: 280px;
+        background: #f8f9fa;
+        border-left: 1px solid #dee2e6;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .caspio-sidebar-header {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        background: white;
+    }
+
+    .caspio-sidebar-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .caspio-app-group {
+        margin-bottom: 1rem;
+    }
+
+    .caspio-app-header {
+        background: #e9ecef;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .caspio-app-header:hover {
+        background: #dee2e6;
+    }
+
+    .caspio-folder-group {
+        margin-left: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .caspio-folder-header {
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+        font-size: 0.8rem;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+    }
+
+    .caspio-folder-header:hover {
+        color: #0d6efd;
+    }
+
+    .caspio-datapage-item {
+        background: white;
+        border: 2px dashed #17a2b8;
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        margin: 0.25rem 0;
+        margin-left: 1rem;
+        cursor: move;
+        transition: all 0.2s;
+        font-size: 0.8rem;
+    }
+
+    .caspio-datapage-item:hover {
+        border-color: #0d6efd;
+        background: #e7f1ff;
+    }
+
+    .caspio-datapage-item.dragging {
+        opacity: 0.5;
+    }
+
+    .caspio-not-configured {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #6c757d;
+    }
+
+    .caspio-loading {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .builder-toolbar {
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .builder-canvas {
+        flex: 1;
+        overflow-y: auto;
+        background: #e9ecef;
+        padding: 2rem;
+    }
+
+    .canvas-page {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        min-height: 600px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 2rem;
+    }
+
+    .widget-library {
+        padding: 1.5rem;
+    }
+
+    .widget-category {
+        margin-bottom: 1.5rem;
+    }
+
+    .widget-category h6 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .widget-item {
+        background: white;
+        border: 2px dashed #6c757d;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        cursor: move;
+        transition: all 0.2s;
+        user-select: none;
+    }
+
+    .widget-item:hover {
+        border-color: #0d6efd;
+        background: #f0f7ff;
+    }
+
+    .widget-item i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+        color: #0d6efd;
+    }
+
+    .drop-zone {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        color: #6c757d;
+        min-height: 100px;
+        margin-bottom: 1rem;
+        transition: all 0.2s;
+    }
+
+    .drop-zone.drag-over {
+        border-color: #0d6efd;
+        background: #f0f7ff;
+    }
+
+    .widget-block {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .widget-block:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    }
+
+    .widget-controls {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        display: flex;
+        gap: 0.25rem;
+        z-index: 10;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+
+    .widget-block:hover .widget-controls,
+    .row-container:hover .row-controls,
+    .column-container:hover .column-controls {
+        opacity: 1;
+    }
+
+    .drag-handle {
+        cursor: move;
+        cursor: grab;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .dragging {
+        opacity: 0.5;
+        background: #f8f9fa;
+    }
+
+    /* Row Styles */
+    .row-container {
+        background: #f8f9fa;
+        border: 2px dashed #adb5bd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        position: relative;
+        min-height: 100px;
+    }
+
+    .row-container:hover {
+        border-color: #198754;
+        box-shadow: 0 2px 8px rgba(25, 135, 84, 0.15);
+    }
+
+    .row-container.drag-over {
+        border-color: #198754;
+        background: #d1e7dd;
+    }
+
+    .row-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+        background: white;
+        border-radius: 6px;
+    }
+
+    .row-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #198754;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .row-controls {
+        display: flex;
+        gap: 0.25rem;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+
+    .row-content {
+        min-height: 60px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    /* Column Styles */
+    .column-container {
+        background: #e7f3ff;
+        border: 2px dashed #6ea8fe;
+        border-radius: 8px;
+        padding: 1rem;
+        position: relative;
+        min-height: 120px;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .column-container:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    }
+
+    .column-container.drag-over {
+        border-color: #0d6efd;
+        background: #cfe2ff;
+    }
+
+    .column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+        background: white;
+        border-radius: 6px;
+    }
+
+    .column-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #0d6efd;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .column-controls {
+        display: flex;
+        gap: 0.25rem;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+
+    .column-content {
+        min-height: 40px;
+    }
+
+    .page-settings {
+        padding: 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="builder-container">
+    <div class="builder-sidebar">
+        <div class="page-settings">
+            <h5>Page Settings</h5>
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" class="form-control form-control-sm" id="pageTitle" value="{{ page.title }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Slug</label>
+                <input type="text" class="form-control form-control-sm" id="pageSlug" value="{{ page.slug }}">
+            </div>
+            <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="editPageStyles()">
+                <i class="bi bi-palette"></i> Page Styling
+            </button>
+            <button class="btn btn-sm btn-outline-secondary w-100" onclick="editPageMenus()">
+                <i class="bi bi-menu-button-wide"></i> Page Menus & Footer
+            </button>
+        </div>
+
+        <div class="widget-library">
+            <div class="widget-category">
+                <h6>Layout</h6>
+
+                <div class="widget-item" draggable="true" data-widget-type="row">
+                    <i class="bi bi-layout-three-columns"></i>
+                    <strong>Row</strong>
+                    <p class="mb-0 small text-muted">Container with columns</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="column">
+                    <i class="bi bi-layout-sidebar"></i>
+                    <strong>Column</strong>
+                    <p class="mb-0 small text-muted">Single column container</p>
+                </div>
+            </div>
+
+            <div class="widget-category">
+                <h6>Content</h6>
+
+                <div class="widget-item" draggable="true" data-widget-type="heading">
+                    <i class="bi bi-type-h1"></i>
+                    <strong>Heading</strong>
+                    <p class="mb-0 small text-muted">Add a title</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="richtext">
+                    <i class="bi bi-card-text"></i>
+                    <strong>Rich Text</strong>
+                    <p class="mb-0 small text-muted">Formatted text</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="html">
+                    <i class="bi bi-code-square"></i>
+                    <strong>Custom HTML</strong>
+                    <p class="mb-0 small text-muted">Custom code</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="separator">
+                    <i class="bi bi-dash-lg"></i>
+                    <strong>Separator</strong>
+                    <p class="mb-0 small text-muted">Horizontal line</p>
+                </div>
+            </div>
+
+            <div class="widget-category">
+                <h6>Components</h6>
+
+                <div class="widget-item" draggable="true" data-widget-type="button">
+                    <i class="bi bi-hand-index"></i>
+                    <strong>Button</strong>
+                    <p class="mb-0 small text-muted">Call-to-action</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="link">
+                    <i class="bi bi-link-45deg"></i>
+                    <strong>Link</strong>
+                    <p class="mb-0 small text-muted">Link with dropdown</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="card">
+                    <i class="bi bi-card-heading"></i>
+                    <strong>Card</strong>
+                    <p class="mb-0 small text-muted">Bootstrap card</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Alert</strong>
+                    <p class="mb-0 small text-muted">Alert box</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="image">
+                    <i class="bi bi-image"></i>
+                    <strong>Image</strong>
+                    <p class="mb-0 small text-muted">Add image</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="video">
+                    <i class="bi bi-play-circle"></i>
+                    <strong>Video</strong>
+                    <p class="mb-0 small text-muted">Embed video</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="accordion">
+                    <i class="bi bi-menu-button-wide"></i>
+                    <strong>Accordion</strong>
+                    <p class="mb-0 small text-muted">Collapsible panels</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="breadcrumb">
+                    <i class="bi bi-signpost"></i>
+                    <strong>Breadcrumb</strong>
+                    <p class="mb-0 small text-muted">Navigation path</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="collapse">
+                    <i class="bi bi-arrows-collapse"></i>
+                    <strong>Collapse</strong>
+                    <p class="mb-0 small text-muted">Toggle content</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="tabs">
+                    <i class="bi bi-folder"></i>
+                    <strong>Tabs</strong>
+                    <p class="mb-0 small text-muted">Tab navigation</p>
+                </div>
+
+                <div class="widget-item" draggable="true" data-widget-type="modal">
+                    <i class="bi bi-window-stack"></i>
+                    <strong>Modal</strong>
+                    <p class="mb-0 small text-muted">Popup with content</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="builder-main">
+        <div class="builder-toolbar">
+            <div>
+                <a href="/site/{{ site.id }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Site
+                </a>
+                <span class="ms-3 text-muted">Editing: <strong>{{ page.title }}</strong></span>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-success" onclick="showUploadModal()">
+                    <i class="bi bi-cloud-upload"></i> Upload Image
+                </button>
+                <button class="btn btn-sm btn-outline-primary" onclick="savePage()">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <a href="/preview/{{ page.id }}" target="_blank" class="btn btn-sm btn-primary">
+                    <i class="bi bi-eye"></i> Preview
+                </a>
+                <button class="btn btn-sm {% if page.published %}btn-warning{% else %}btn-success{% endif %}" id="publishBtn" onclick="togglePublish()">
+                    <i class="bi bi-{% if page.published %}eye-slash{% else %}rocket-takeoff{% endif %}" id="publishIcon"></i>
+                    <span id="publishText">{% if page.published %}Unpublish{% else %}Publish{% endif %}</span>
+                </button>
+                {% if page.published %}
+                <a href="/site/{{ page.site_id }}/{{ page.slug }}" target="_blank" class="btn btn-sm btn-info">
+                    <i class="bi bi-box-arrow-up-right"></i> View Live
+                </a>
+                {% endif %}
+                <span class="ms-3 border-start ps-3">
+                    <span class="text-muted small me-2"><i class="bi bi-person"></i> {{ current_user.username }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-box-arrow-left"></i> Logout
+                    </a>
+                </span>
+            </div>
+        </div>
+
+        <div class="builder-canvas">
+            <div class="canvas-page" id="canvas">
+                <div class="drop-zone" id="mainDropZone">
+                    <i class="bi bi-plus-circle" style="font-size: 3rem;"></i>
+                    <h4>Drag widgets here to start building</h4>
+                    <p>Start with a Row or add content directly</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Caspio DataPages Sidebar -->
+    <div class="builder-sidebar-right">
+        <div class="caspio-sidebar-header">
+            <h6 class="mb-0"><i class="bi bi-database"></i> Caspio DataPages</h6>
+            <div class="input-group input-group-sm mt-2">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="caspioSearchInput" placeholder="Search datapages..." oninput="filterCaspioDatapages(this.value)">
+                <button class="btn btn-outline-secondary" type="button" onclick="clearCaspioSearch()" title="Clear search">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <button class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="refreshCaspioDatapages()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+        <div class="caspio-sidebar-content" id="caspioSidebarContent">
+            <div class="caspio-loading">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <p class="mt-2 mb-0">Loading DataPages...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Widget Edit Modal -->
+<div class="modal fade" id="widgetModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="widgetModalTitle">Edit Widget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="widgetModalBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveWidgetEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Image</label>
+                    <input type="file" class="form-control" id="imageFile" accept="image/*">
+                    <small class="text-muted">Allowed formats: PNG, JPG, JPEG, GIF, WebP, SVG (max 16MB)</small>
+                </div>
+                <div id="uploadPreview" class="mt-3" style="display: none;">
+                    <img id="previewImage" src="" alt="Preview" class="img-fluid mb-2" style="max-height: 200px;">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="uploadedUrl" readonly>
+                        <button class="btn btn-outline-secondary" onclick="copyToClipboard()">
+                            <i class="bi bi-clipboard"></i> Copy URL
+                        </button>
+                    </div>
+                </div>
+                <div id="uploadError" class="alert alert-danger mt-3" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="uploadImage()" id="uploadBtn">
+                    <i class="bi bi-cloud-upload"></i> Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Gallery Modal -->
+<div class="modal fade" id="imageGalleryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Gallery</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="galleryTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="browse-tab" data-bs-toggle="tab" data-bs-target="#browse" type="button" role="tab">
+                            <i class="bi bi-images"></i> Browse Images
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                            <i class="bi bi-cloud-upload"></i> Upload New
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3" id="galleryTabContent">
+                    <div class="tab-pane fade show active" id="browse" role="tabpanel">
+                        <div id="galleryLoading" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="galleryGrid" class="row g-3" style="display: none;"></div>
+                        <div id="galleryEmpty" class="text-center py-5 text-muted" style="display: none;">
+                            <i class="bi bi-image" style="font-size: 3rem;"></i>
+                            <p class="mt-3">No images uploaded yet. Upload your first image!</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="upload" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label">Select Image</label>
+                            <input type="file" class="form-control" id="galleryImageFile" accept="image/*">
+                            <small class="text-muted">Allowed formats: PNG, JPG, JPEG, GIF, WebP, SVG (max 16MB)</small>
+                        </div>
+                        <div id="galleryUploadPreview" class="mt-3" style="display: none;">
+                            <img id="galleryPreviewImage" src="" alt="Preview" class="img-fluid mb-2" style="max-height: 200px;">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="uploadToGallery()">
+                            <i class="bi bi-cloud-upload"></i> Upload
+                        </button>
+                        <div id="galleryUploadError" class="alert alert-danger mt-3" style="display: none;"></div>
+                        <div id="galleryUploadSuccess" class="alert alert-success mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+const pageId = {{ page.id }};
+const siteId = {{ page.site_id }};
+let widgets = {{ page.content|safe }};
+let currentEditingWidget = null;
+let widgetModal = null;
+let uploadModal = null;
+let imageGalleryModal = null;
+let currentImageInputId = null;
+let pageStyles = {{ page_styles_json|tojson }};
+let isPublished = {{ 'true' if page.published else 'false' }};
+const sitePages = {{ pages|tojson }};
+
+// Page-specific menu/footer settings
+let pageMenuSettings = {
+    top_menu_id: {{ page.top_menu_id|tojson }},
+    left_menu_id: {{ page.left_menu_id|tojson }},
+    right_menu_id: {{ page.right_menu_id|tojson }},
+    footer_id: {{ page.footer_id|tojson }}
+};
+
+// Available menus and footers for this site
+const siteMenus = [
+    {% for menu in menus %}
+    { id: {{ menu.id }}, name: "{{ menu.name }}", position: "{{ menu.position }}", is_active: {{ 'true' if menu.is_active else 'false' }} },
+    {% endfor %}
+];
+
+const siteFooters = [
+    {% for footer in footers %}
+    { id: {{ footer.id }}, name: "{{ footer.name }}", is_active: {{ 'true' if footer.is_active else 'false' }} },
+    {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    widgetModal = new bootstrap.Modal(document.getElementById('widgetModal'));
+    uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+    imageGalleryModal = new bootstrap.Modal(document.getElementById('imageGalleryModal'));
+    setupWidgetDragging();
+    renderWidgets();
+    applyPageStyles();
+});
+
+function setupWidgetDragging() {
+    const widgetItems = document.querySelectorAll('.widget-item');
+    widgetItems.forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('widgetType', e.currentTarget.dataset.widgetType);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+    });
+}
+
+function setupDropZone(element, onDrop) {
+    // Remove any existing listeners
+    const newElement = element.cloneNode(true);
+    element.parentNode.replaceChild(newElement, element);
+
+    newElement.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        newElement.classList.add('drag-over');
+    });
+
+    newElement.addEventListener('dragleave', (e) => {
+        if (e.target === newElement) {
+            newElement.classList.remove('drag-over');
+        }
+    });
+
+    newElement.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        newElement.classList.remove('drag-over');
+
+        const widgetType = e.dataTransfer.getData('widgetType');
+        console.log('Dropped widget type:', widgetType);
+        if (widgetType && onDrop) {
+            // For Caspio widgets, also pass the additional data
+            if (widgetType === 'caspio') {
+                const caspioData = {
+                    datapageName: e.dataTransfer.getData('caspioDatapageName'),
+                    datapageKey: e.dataTransfer.getData('caspioDatapageKey'),
+                    appName: e.dataTransfer.getData('caspioAppName'),
+                    deployUrl: e.dataTransfer.getData('caspioDeployUrl')
+                };
+                onDrop(widgetType, caspioData);
+            } else {
+                onDrop(widgetType);
+            }
+        }
+    });
+
+    return newElement;
+}
+
+let sortableInstance = null;
+let sortableInstances = [];
+
+function setupWidgetSorting() {
+    const canvas = document.getElementById('canvas');
+
+    // Destroy existing Sortable instances
+    if (sortableInstance) {
+        sortableInstance.destroy();
+    }
+    sortableInstances.forEach(instance => instance.destroy());
+    sortableInstances = [];
+
+    // Create new Sortable instance for root level canvas
+    sortableInstance = new Sortable(canvas, {
+        animation: 150,
+        ghostClass: 'dragging',
+        handle: '.drag-handle',
+        draggable: '.widget-block, .row-container, .column-container',
+        filter: '.column-content',
+        onEnd: function(evt) {
+            updateWidgetOrder();
+        }
+    });
+
+    // Set up sorting for standalone column content areas
+    document.querySelectorAll('[data-standalone-col]').forEach(colContent => {
+        const colIndex = parseInt(colContent.dataset.standaloneCol);
+        const instance = new Sortable(colContent, {
+            animation: 150,
+            ghostClass: 'dragging',
+            handle: '.drag-handle',
+            draggable: '.widget-block, .row-container',
+            onEnd: function(evt) {
+                updateNestedWidgetOrder(colIndex, -1);
+            }
+        });
+        sortableInstances.push(instance);
+    });
+
+    // Set up sorting for column content areas within rows
+    document.querySelectorAll('[data-drop-row][data-drop-col]').forEach(colContent => {
+        const rowIndex = parseInt(colContent.dataset.dropRow);
+        const colIndex = parseInt(colContent.dataset.dropCol);
+        const instance = new Sortable(colContent, {
+            animation: 150,
+            ghostClass: 'dragging',
+            handle: '.drag-handle',
+            draggable: '.widget-block, .row-container',
+            onEnd: function(evt) {
+                updateNestedWidgetOrder(rowIndex, colIndex);
+            }
+        });
+        sortableInstances.push(instance);
+    });
+}
+
+function updateWidgetOrder() {
+    const canvas = document.getElementById('canvas');
+    const allWidgets = canvas.querySelectorAll('.widget-block, .row-container, .column-container');
+    const newOrder = [];
+
+    allWidgets.forEach((block, newIndex) => {
+        const oldIndex = parseInt(block.dataset.index);
+        if (oldIndex >= 0 && oldIndex < widgets.length) {
+            newOrder.push(widgets[oldIndex]);
+            // Update the data-index to reflect new position
+            block.dataset.index = newIndex;
+        }
+    });
+
+    // Update the widgets array with the new order
+    widgets.length = 0;
+    widgets.push(...newOrder);
+
+    // Update onclick handlers to use new indices
+    allWidgets.forEach((block, newIndex) => {
+        // Update edit buttons
+        const editBtn = block.querySelector('[onclick*="editWidget"], [onclick*="editRow"], [onclick*="editStandaloneColumn"]');
+        if (editBtn) {
+            const onclickAttr = editBtn.getAttribute('onclick');
+            if (onclickAttr) {
+                const newOnclick = onclickAttr.replace(/\(\d+\)/, `(${newIndex})`);
+                editBtn.setAttribute('onclick', newOnclick);
+            }
+        }
+
+        // Update delete buttons
+        const deleteBtn = block.querySelector('[onclick*="deleteWidget"]');
+        if (deleteBtn) {
+            const onclickAttr = deleteBtn.getAttribute('onclick');
+            if (onclickAttr) {
+                const newOnclick = onclickAttr.replace(/\(\d+\)/, `(${newIndex})`);
+                deleteBtn.setAttribute('onclick', newOnclick);
+            }
+        }
+    });
+}
+
+function updateNestedWidgetOrder(rowIndex, colIndex) {
+    console.log('Updating nested widget order:', rowIndex, colIndex);
+
+    let targetArray;
+    let selector;
+
+    // Determine if this is a standalone column or a column in a row
+    if (colIndex === -1) {
+        // Standalone column
+        targetArray = widgets[rowIndex].children;
+        selector = `[data-standalone-col="${rowIndex}"]`;
+    } else {
+        // Column within a row
+        targetArray = widgets[rowIndex].children[colIndex].children;
+        selector = `[data-drop-row="${rowIndex}"][data-drop-col="${colIndex}"]`;
+    }
+
+    const colContent = document.querySelector(selector);
+    if (!colContent || !targetArray) return;
+
+    const childBlocks = colContent.querySelectorAll(':scope > .widget-block, :scope > .row-container');
+    const newOrder = [];
+
+    childBlocks.forEach((block, newIndex) => {
+        const oldIndex = parseInt(block.dataset.childIndex);
+        if (oldIndex >= 0 && oldIndex < targetArray.length) {
+            newOrder.push(targetArray[oldIndex]);
+            block.dataset.childIndex = newIndex;
+        }
+    });
+
+    // Update the target array with the new order
+    targetArray.length = 0;
+    targetArray.push(...newOrder);
+
+    // Update onclick handlers
+    childBlocks.forEach((block, newIndex) => {
+        const editBtn = block.querySelector('[onclick*="editNestedWidget"]');
+        if (editBtn) {
+            const onclickAttr = editBtn.getAttribute('onclick');
+            if (onclickAttr) {
+                // Replace the childIndex parameter (third parameter)
+                const newOnclick = onclickAttr.replace(/editNestedWidget\((\d+),\s*(\d+),\s*\d+\)/, `editNestedWidget($1, $2, ${newIndex})`);
+                editBtn.setAttribute('onclick', newOnclick);
+            }
+        }
+
+        const deleteBtn = block.querySelector('[onclick*="deleteNestedWidget"]');
+        if (deleteBtn) {
+            const onclickAttr = deleteBtn.getAttribute('onclick');
+            if (onclickAttr) {
+                const newOnclick = onclickAttr.replace(/deleteNestedWidget\((\d+),\s*(\d+),\s*\d+\)/, `deleteNestedWidget($1, $2, ${newIndex})`);
+                deleteBtn.setAttribute('onclick', newOnclick);
+            }
+        }
+    });
+}
+
+function createWidget(type, extraData = null) {
+    const baseWidget = {
+        id: Date.now() + '-' + Math.floor(Math.random() * 100000),
+        type: type
+    };
+
+    switch(type) {
+        case 'row':
+            return {...baseWidget, numColumns: 2, children: []};
+        case 'column':
+            return {...baseWidget, width: 12, children: []};
+        case 'heading':
+            return {...baseWidget, content: 'New Heading', level: 'h2'};
+        case 'richtext':
+            return {...baseWidget, content: 'Enter your text here...'};
+        case 'html':
+            return {...baseWidget, content: '<p>Custom HTML</p>'};
+        case 'separator':
+            return {...baseWidget};
+        case 'button':
+            return {...baseWidget, text: 'Click Me', url: '#', style: 'primary', dropdownItems: []};
+        case 'link':
+            return {...baseWidget, text: 'Link Text', url: '#', target: '_self', dropdownItems: []};
+        case 'card':
+            return {...baseWidget, title: 'Card Title', content: 'Card content', image: ''};
+        case 'alert':
+            return {...baseWidget, content: 'Alert message', style: 'info'};
+        case 'image':
+            return {...baseWidget, src: 'https://via.placeholder.com/800x400', alt: 'Image'};
+        case 'video':
+            return {...baseWidget, url: ''};
+        case 'accordion':
+            return {...baseWidget, items: [
+                {title: 'Item 1', content: 'Content for item 1', expanded: true},
+                {title: 'Item 2', content: 'Content for item 2', expanded: false}
+            ]};
+        case 'breadcrumb':
+            return {...baseWidget, items: [
+                {text: 'Home', url: '#'},
+                {text: 'Current', url: '', active: true}
+            ]};
+        case 'collapse':
+            return {...baseWidget, title: 'Click to toggle', content: 'Hidden content here...', expanded: false};
+        case 'tabs':
+            return {...baseWidget, tabs: [
+                {title: 'Tab 1', content: 'Content for tab 1', active: true},
+                {title: 'Tab 2', content: 'Content for tab 2', active: false}
+            ]};
+        case 'caspio':
+            // If extraData provided from drag-drop, use it; otherwise use empty defaults
+            if (extraData) {
+                return {...baseWidget,
+                    appName: extraData.appName || '',
+                    datapageName: extraData.datapageName || '',
+                    datapageKey: extraData.datapageKey || '',
+                    deployUrl: extraData.deployUrl || '',
+                    hidden: false
+                };
+            }
+            return {...baseWidget, appName: '', datapageName: '', datapageKey: '', deployUrl: '', hidden: false};
+        case 'modal':
+            return {...baseWidget,
+                modalId: 'modal-' + Date.now(),
+                buttonText: 'Open Modal',
+                buttonStyle: 'primary',
+                modalTitle: 'Modal Title',
+                modalSize: '',  // '', 'sm', 'lg', 'xl', 'fullscreen'
+                children: []  // Widgets inside the modal
+            };
+        default:
+            return baseWidget;
+    }
+}
+
+function renderWidgets() {
+    const canvas = document.getElementById('canvas');
+
+    if (widgets.length === 0) {
+        canvas.innerHTML = `
+            <div class="drop-zone" id="mainDropZone">
+                <i class="bi bi-plus-circle" style="font-size: 3rem;"></i>
+                <h4>Drag widgets here to start building</h4>
+                <p>Start with a Row or add content directly</p>
+            </div>
+        `;
+
+        const dropZone = document.getElementById('mainDropZone');
+        setupDropZone(dropZone, (type, extraData) => {
+            console.log('Adding widget to root:', type);
+            widgets.push(createWidget(type, extraData));
+            renderWidgets();
+        });
+    } else {
+        canvas.innerHTML = widgets.map((widget, index) => renderWidget(widget, index)).join('');
+
+        // Setup all drop zones after rendering
+        setTimeout(() => {
+            setupAllDropZones();
+            setupWidgetSorting();
+        }, 0);
+    }
+}
+
+function renderWidget(widget, index) {
+    if (widget.type === 'row') {
+        return renderRow(widget, index);
+    } else if (widget.type === 'column') {
+        return renderStandaloneColumn(widget, index);
+    } else {
+        return renderContentWidget(widget, index);
+    }
+}
+
+function renderStandaloneColumn(widget, index) {
+    const colStyles = buildStyleString(widget);
+    const combinedStyle = colStyles ? `${colStyles.replace('style="', '').replace('"', '')} width: 100%;` : 'width: 100%;';
+
+    return `
+        <div class="column-container" data-index="${index}" style="${combinedStyle}">
+            <div class="column-header">
+                <div class="column-label">
+                    <i class="bi bi-layout-sidebar"></i>
+                    Standalone Column (${widget.width || 12}/12)
+                </div>
+                <div class="column-controls">
+                    <span class="drag-handle btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-grip-vertical"></i>
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editStandaloneColumn(${index})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteWidget(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="column-content drop-zone-target" data-standalone-col="${index}">
+                ${widget.children && widget.children.length > 0
+                    ? widget.children.map((child, childIndex) => renderNestedWidget(child, index, -1, childIndex)).join('')
+                    : '<div class="drop-zone"><small>Drop widgets here</small></div>'}
+            </div>
+        </div>
+    `;
+}
+
+function renderRow(widget, index) {
+    const numCols = widget.numColumns || 2;
+    const colWidth = Math.floor(12 / numCols);
+
+    // Ensure we have the right number of columns
+    if (!widget.children) widget.children = [];
+    while (widget.children.length < numCols) {
+        widget.children.push({
+            id: Date.now() + '-' + Math.floor(Math.random() * 100000) + '-' + widget.children.length,
+            type: 'column',
+            width: colWidth,
+            children: []
+        });
+    }
+    while (widget.children.length > numCols) {
+        widget.children.pop();
+    }
+
+    const rowStyles = buildStyleString(widget);
+    return `
+        <div class="row-container" data-index="${index}" ${rowStyles}>
+            <div class="row-header">
+                <div class="row-label">
+                    <i class="bi bi-layout-three-columns"></i>
+                    Row (${numCols} columns)
+                </div>
+                <div class="row-controls">
+                    <span class="drag-handle btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-grip-vertical"></i>
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editRow(${index})">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteWidget(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row-content">
+                ${widget.children.map((col, colIndex) => renderColumn(col, index, colIndex)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderColumn(column, rowIndex, colIndex) {
+    const colStyles = buildStyleString(column);
+    const flexStyle = `flex: ${column.width || 6};`;
+    const combinedStyle = colStyles ? `${colStyles.replace('style="', '').replace('"', '')} ${flexStyle}` : flexStyle;
+
+    return `
+        <div class="column-container" data-row="${rowIndex}" data-col="${colIndex}" style="${combinedStyle}">
+            <div class="column-header">
+                <div class="column-label">
+                    <i class="bi bi-layout-sidebar"></i>
+                    Col ${colIndex + 1} (${column.width || 6}/12)
+                </div>
+                <div class="column-controls">
+                    <span class="drag-handle btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-grip-vertical"></i>
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editColumn(${rowIndex}, ${colIndex})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="column-content drop-zone-target" data-drop-row="${rowIndex}" data-drop-col="${colIndex}">
+                ${column.children && column.children.length > 0
+                    ? column.children.map((child, childIndex) => renderNestedWidget(child, rowIndex, colIndex, childIndex)).join('')
+                    : '<div class="drop-zone"><small>Drop widgets here</small></div>'}
+            </div>
+        </div>
+    `;
+}
+
+function renderNestedWidget(widget, rowIndex, colIndex, childIndex) {
+    if (widget.type === 'row') {
+        return renderNestedRow(widget, rowIndex, colIndex, childIndex);
+    }
+    return renderNestedContentWidget(widget, rowIndex, colIndex, childIndex);
+}
+
+function renderNestedRow(widget, rowIndex, colIndex, childIndex) {
+    const numCols = widget.numColumns || 2;
+    const colWidth = Math.floor(12 / numCols);
+
+    if (!widget.children) widget.children = [];
+    while (widget.children.length < numCols) {
+        widget.children.push({
+            id: Date.now() + '-' + Math.floor(Math.random() * 100000) + '-' + widget.children.length,
+            type: 'column',
+            width: colWidth,
+            children: []
+        });
+    }
+    while (widget.children.length > numCols) {
+        widget.children.pop();
+    }
+
+    return `
+        <div class="row-container" data-child-index="${childIndex}" style="margin-top: 1rem;">
+            <div class="row-header">
+                <div class="row-label">
+                    <i class="bi bi-layout-three-columns"></i>
+                    Nested Row (${numCols} columns)
+                </div>
+                <div class="row-controls">
+                    <span class="drag-handle btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-grip-vertical"></i>
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editNestedRow(${rowIndex}, ${colIndex}, ${childIndex})">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteNestedWidget(${rowIndex}, ${colIndex}, ${childIndex})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row-content">
+                ${widget.children.map((col, nestedColIndex) => renderNestedColumn(col, rowIndex, colIndex, childIndex, nestedColIndex)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderNestedColumn(column, rowIndex, colIndex, childIndex, nestedColIndex) {
+    return `
+        <div class="column-container" style="flex: ${column.width || 6};">
+            <div class="column-header">
+                <div class="column-label">
+                    <i class="bi bi-layout-sidebar"></i>
+                    Col ${nestedColIndex + 1} (${column.width || 6}/12)
+                </div>
+            </div>
+            <div class="column-content drop-zone-target" data-nested-drop data-parent-row="${rowIndex}" data-parent-col="${colIndex}" data-parent-child="${childIndex}" data-nested-col="${nestedColIndex}">
+                ${column.children && column.children.length > 0
+                    ? column.children.map((child, idx) => renderDeepNestedWidget(child, rowIndex, colIndex, childIndex, nestedColIndex, idx)).join('')
+                    : '<div class="drop-zone"><small>Drop here</small></div>'}
+            </div>
+        </div>
+    `;
+}
+
+function renderDeepNestedWidget(widget, rowIndex, colIndex, childIndex, nestedColIndex, idx) {
+    return `
+        <div class="widget-block" data-deep-index="${idx}">
+            <div class="widget-controls">
+                <span class="drag-handle btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-grip-vertical"></i>
+                </span>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteDeepNested(${rowIndex}, ${colIndex}, ${childIndex}, ${nestedColIndex}, ${idx})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            ${renderWidgetContent(widget)}
+        </div>
+    `;
+}
+
+function renderNestedContentWidget(widget, rowIndex, colIndex, childIndex) {
+    return `
+        <div class="widget-block" data-child-index="${childIndex}">
+            <div class="widget-controls">
+                <span class="drag-handle btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-grip-vertical"></i>
+                </span>
+                <button class="btn btn-sm btn-outline-primary" onclick="editNestedWidget(${rowIndex}, ${colIndex}, ${childIndex})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteNestedWidget(${rowIndex}, ${colIndex}, ${childIndex})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            ${renderWidgetContent(widget)}
+        </div>
+    `;
+}
+
+function renderContentWidget(widget, index) {
+    return `
+        <div class="widget-block" data-index="${index}">
+            <div class="widget-controls">
+                <span class="drag-handle btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-grip-vertical"></i>
+                </span>
+                <button class="btn btn-sm btn-outline-primary" onclick="editWidget(${index})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteWidget(${index})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            ${renderWidgetContent(widget)}
+        </div>
+    `;
+}
+
+function buildStyleString(widget) {
+    if (!widget.styles) return '';
+
+    let styleStr = '';
+    const styles = widget.styles;
+
+    if (styles.display) styleStr += `display: ${styles.display}; `;
+    if (styles.textAlign) styleStr += `text-align: ${styles.textAlign}; `;
+    if (styles.alignItems) styleStr += `align-items: ${styles.alignItems}; `;
+    if (styles.color) styleStr += `color: ${styles.color}; `;
+    if (styles.backgroundColor) styleStr += `background-color: ${styles.backgroundColor}; `;
+    if (styles.textDecoration) styleStr += `text-decoration: ${styles.textDecoration}; `;
+    if (styles.fontWeight) styleStr += `font-weight: ${styles.fontWeight}; `;
+    if (styles.fontStyle) styleStr += `font-style: ${styles.fontStyle}; `;
+    if (styles.backgroundImage) styleStr += `background-image: url('${styles.backgroundImage}'); `;
+    if (styles.backgroundSize) styleStr += `background-size: ${styles.backgroundSize}; `;
+    if (styles.backgroundPosition) styleStr += `background-position: ${styles.backgroundPosition}; `;
+    if (styles.backgroundImage) styleStr += `background-repeat: no-repeat; `;
+    if (styles.borderTop) styleStr += `border-top: ${styles.borderTop}; `;
+    if (styles.borderRight) styleStr += `border-right: ${styles.borderRight}; `;
+    if (styles.borderBottom) styleStr += `border-bottom: ${styles.borderBottom}; `;
+    if (styles.borderLeft) styleStr += `border-left: ${styles.borderLeft}; `;
+    if (styles.borderRadius) styleStr += `border-radius: ${styles.borderRadius}; `;
+    if (styles.boxShadow) styleStr += `box-shadow: ${styles.boxShadow}; `;
+    if (styles.padding) styleStr += `padding: ${styles.padding}; `;
+    if (styles.margin) styleStr += `margin: ${styles.margin}; `;
+    if (styles.width) styleStr += `width: ${styles.width}; `;
+    if (styles.height) styleStr += `height: ${styles.height}; `;
+    if (styles.custom) styleStr += styles.custom + '; ';
+
+    return styleStr ? `style="${styleStr}"` : '';
+}
+
+// Build styles specifically for anchor tags (color, text-decoration, font properties)
+function buildAnchorStyles(widget) {
+    if (!widget.styles) return '';
+
+    let styleStr = '';
+    const styles = widget.styles;
+
+    if (styles.color) styleStr += `color: ${styles.color}; `;
+    if (styles.textDecoration) styleStr += `text-decoration: ${styles.textDecoration}; `;
+    if (styles.fontWeight) styleStr += `font-weight: ${styles.fontWeight}; `;
+    if (styles.fontStyle) styleStr += `font-style: ${styles.fontStyle}; `;
+
+    return styleStr ? `style="${styleStr}"` : '';
+}
+
+// Build styles for container/wrapper elements (excluding anchor-specific styles)
+function buildContainerStyles(widget) {
+    if (!widget.styles) return '';
+
+    let styleStr = '';
+    const styles = widget.styles;
+
+    if (styles.display) styleStr += `display: ${styles.display}; `;
+    if (styles.textAlign) styleStr += `text-align: ${styles.textAlign}; `;
+    if (styles.alignItems) styleStr += `align-items: ${styles.alignItems}; `;
+    if (styles.backgroundColor) styleStr += `background-color: ${styles.backgroundColor}; `;
+    if (styles.backgroundImage) styleStr += `background-image: url('${styles.backgroundImage}'); `;
+    if (styles.backgroundSize) styleStr += `background-size: ${styles.backgroundSize}; `;
+    if (styles.backgroundPosition) styleStr += `background-position: ${styles.backgroundPosition}; `;
+    if (styles.backgroundImage) styleStr += `background-repeat: no-repeat; `;
+    if (styles.borderTop) styleStr += `border-top: ${styles.borderTop}; `;
+    if (styles.borderRight) styleStr += `border-right: ${styles.borderRight}; `;
+    if (styles.borderBottom) styleStr += `border-bottom: ${styles.borderBottom}; `;
+    if (styles.borderLeft) styleStr += `border-left: ${styles.borderLeft}; `;
+    if (styles.borderRadius) styleStr += `border-radius: ${styles.borderRadius}; `;
+    if (styles.boxShadow) styleStr += `box-shadow: ${styles.boxShadow}; `;
+    if (styles.padding) styleStr += `padding: ${styles.padding}; `;
+    if (styles.margin) styleStr += `margin: ${styles.margin}; `;
+    if (styles.width) styleStr += `width: ${styles.width}; `;
+    if (styles.height) styleStr += `height: ${styles.height}; `;
+    if (styles.custom) styleStr += styles.custom + '; ';
+
+    return styleStr ? `style="${styleStr}"` : '';
+}
+
+function renderWidgetContent(widget) {
+    let content = '';
+    const styleAttr = buildStyleString(widget);
+
+    switch(widget.type) {
+        case 'heading':
+            content = `<${widget.level || 'h2'} ${styleAttr}>${widget.content}</${widget.level || 'h2'}>`;
+            break;
+        case 'richtext':
+            content = `<div ${styleAttr}>${widget.content}</div>`;
+            break;
+        case 'html':
+            content = `<div ${styleAttr}>${widget.content}</div>`;
+            break;
+        case 'separator':
+            content = `<hr ${styleAttr}>`;
+            break;
+        case 'button':
+            if (widget.dropdownItems && widget.dropdownItems.length > 0) {
+                const containerAttr = buildContainerStyles(widget);
+                content = `
+                    <div class="btn-group" ${containerAttr}>
+                        <button type="button" class="btn btn-${widget.style} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            ${widget.text}
+                        </button>
+                        <ul class="dropdown-menu">
+                            ${widget.dropdownItems.map(item => {
+                                if (item.nestedItems && item.nestedItems.length > 0) {
+                                    return `
+                                        <li class="dropend">
+                                            <a class="dropdown-item dropdown-toggle" href="${item.url || '#'}">${item.text}</a>
+                                            <ul class="dropdown-menu">
+                                                ${item.nestedItems.map(nested => `
+                                                    <li><a class="dropdown-item" href="${nested.url}">${nested.text}</a></li>
+                                                `).join('')}
+                                            </ul>
+                                        </li>
+                                    `;
+                                } else {
+                                    return `<li><a class="dropdown-item" href="${item.url}">${item.text}</a></li>`;
+                                }
+                            }).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                content = `<a href="${widget.url}" class="btn btn-${widget.style}" ${styleAttr}>${widget.text}</a>`;
+            }
+            break;
+        case 'link':
+            if (widget.dropdownItems && widget.dropdownItems.length > 0) {
+                const containerAttr = buildContainerStyles(widget);
+                const anchorAttr = buildAnchorStyles(widget);
+                content = `
+                    <div class="dropdown d-inline-block" ${containerAttr}>
+                        <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown" ${anchorAttr}>${widget.text}</a>
+                        <ul class="dropdown-menu">
+                            ${widget.dropdownItems.map(item => `<li><a class="dropdown-item" href="${item.url}">${item.text}</a></li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                content = `<a href="${widget.url}" target="${widget.target}" ${styleAttr}>${widget.text}</a>`;
+            }
+            break;
+        case 'card':
+            content = `
+                <div class="card" ${styleAttr}>
+                    ${widget.image ? `<img src="${widget.image}" class="card-img-top" alt="Card image">` : ''}
+                    <div class="card-body">
+                        <h5 class="card-title">${widget.title}</h5>
+                        <p class="card-text">${widget.content}</p>
+                    </div>
+                </div>
+            `;
+            break;
+        case 'alert':
+            content = `<div class="alert alert-${widget.style}" ${styleAttr}>${widget.content}</div>`;
+            break;
+        case 'image':
+            content = `<img src="${widget.src}" alt="${widget.alt}" class="img-fluid" ${styleAttr}>`;
+            break;
+        case 'video':
+            content = widget.url ? `
+                <div class="ratio ratio-16x9">
+                    <iframe src="${widget.url}" allowfullscreen></iframe>
+                </div>
+            ` : '<p class="text-muted">No video URL set</p>';
+            break;
+        case 'accordion':
+            const accordionId = `accordion-${widget.id}`;
+            content = `
+                <div class="accordion" id="${accordionId}" ${styleAttr}>
+                    ${(widget.items || []).map((item, idx) => `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button ${!item.expanded ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${widget.id}-${idx}">
+                                    ${item.title}
+                                </button>
+                            </h2>
+                            <div id="collapse-${widget.id}-${idx}" class="accordion-collapse collapse ${item.expanded ? 'show' : ''}" data-bs-parent="#${accordionId}">
+                                <div class="accordion-body">${item.content}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            break;
+        case 'breadcrumb':
+            content = `
+                <nav aria-label="breadcrumb" ${styleAttr}>
+                    <ol class="breadcrumb">
+                        ${(widget.items || []).map(item => `
+                            <li class="breadcrumb-item ${item.active ? 'active' : ''}">
+                                ${item.active ? item.text : `<a href="${item.url}">${item.text}</a>`}
+                            </li>
+                        `).join('')}
+                    </ol>
+                </nav>
+            `;
+            break;
+        case 'collapse':
+            const collapseId = `collapse-${widget.id}`;
+            content = `
+                <div ${styleAttr}>
+                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                        ${widget.title}
+                    </button>
+                    <div class="collapse ${widget.expanded ? 'show' : ''}" id="${collapseId}">
+                        <div class="card card-body mt-2">
+                            ${widget.content}
+                        </div>
+                    </div>
+                </div>
+            `;
+            break;
+        case 'tabs':
+            const tabId = `tabs-${widget.id}`;
+            content = `
+                <div ${styleAttr}>
+                    <ul class="nav nav-tabs" id="${tabId}" role="tablist">
+                        ${(widget.tabs || []).map((tab, idx) => `
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link ${tab.active ? 'active' : ''}" id="tab-${widget.id}-${idx}" data-bs-toggle="tab" data-bs-target="#content-${widget.id}-${idx}" type="button" role="tab">
+                                    ${tab.title}
+                                </button>
+                            </li>
+                        `).join('')}
+                    </ul>
+                    <div class="tab-content pt-3">
+                        ${(widget.tabs || []).map((tab, idx) => `
+                            <div class="tab-pane fade ${tab.active ? 'show active' : ''}" id="content-${widget.id}-${idx}" role="tabpanel">
+                                ${tab.content}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            break;
+        case 'caspio':
+            const hiddenBadge = widget.hidden ? '<span class="badge bg-secondary ms-2"><i class="bi bi-eye-slash"></i> Hidden</span>' : '';
+            if (widget.datapageKey) {
+                content = `
+                    <div class="caspio-datapage-preview ${widget.hidden ? 'opacity-50' : ''}" ${styleAttr}>
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-database"></i>
+                            <strong>Caspio DataPage:</strong> ${widget.datapageName || 'Unnamed'}${hiddenBadge}
+                            <br><small class="text-muted">App: ${widget.appName || 'Unknown'} | Key: ${widget.datapageKey}</small>
+                        </div>
+                    </div>
+                `;
+            } else {
+                content = `
+                    <div class="caspio-datapage-preview" ${styleAttr}>
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-database"></i>
+                            <strong>Caspio DataPage</strong>
+                            <br><small>No datapage selected - click edit to configure</small>
+                        </div>
+                    </div>
+                `;
+            }
+            break;
+        case 'modal':
+            const modalChildCount = (widget.children || []).length;
+            const sizeLabel = widget.modalSize ? ` (${widget.modalSize})` : '';
+            content = `
+                <div class="modal-widget-preview" ${styleAttr}>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <button class="btn btn-${widget.buttonStyle || 'primary'}" disabled>
+                            <i class="bi bi-window-stack"></i> ${widget.buttonText || 'Open Modal'}
+                        </button>
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-window"></i> Modal: "${widget.modalTitle || 'Untitled'}"${sizeLabel}
+                        </span>
+                    </div>
+                    <div class="modal-content-preview border rounded p-2 bg-light">
+                        <small class="text-muted d-block mb-2">
+                            <i class="bi bi-box-arrow-in-down"></i> Modal Contents (${modalChildCount} widget${modalChildCount !== 1 ? 's' : ''}):
+                        </small>
+                        <div class="modal-children-container" data-modal-id="${widget.id}">
+                            ${modalChildCount === 0 ? `
+                                <div class="modal-drop-zone text-center py-3 border-dashed rounded"
+                                     style="border: 2px dashed #dee2e6; background: #f8f9fa;">
+                                    <i class="bi bi-plus-circle text-muted"></i>
+                                    <br><small class="text-muted">Drag widgets here</small>
+                                </div>
+                            ` : `
+                                <div class="modal-children-list">
+                                    ${(widget.children || []).map((child, idx) => `
+                                        <div class="modal-child-item d-flex align-items-center gap-2 p-2 border rounded mb-1 bg-white">
+                                            <i class="bi bi-grip-vertical text-muted"></i>
+                                            <span class="badge bg-info">${child.type}</span>
+                                            <span class="flex-grow-1 small">${getWidgetSummary(child)}</span>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editModalChild('${widget.id}', ${idx})">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteModalChild('${widget.id}', ${idx})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                    <div class="modal-drop-zone text-center py-2 border-dashed rounded mt-2"
+                                         style="border: 2px dashed #dee2e6; background: #f8f9fa;">
+                                        <small class="text-muted"><i class="bi bi-plus"></i> Add more</small>
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+            break;
+    }
+
+    return content;
+}
+
+// Helper to get a summary of a widget for display in modal children list
+function getWidgetSummary(widget) {
+    switch(widget.type) {
+        case 'heading': return widget.content || 'Heading';
+        case 'richtext': return (widget.content || '').substring(0, 30) + '...';
+        case 'button': return widget.text || 'Button';
+        case 'caspio': return widget.datapageName || 'DataPage';
+        case 'image': return widget.alt || 'Image';
+        case 'row': return `Row (${(widget.children || []).length} columns)`;
+        case 'html': return 'Custom HTML';
+        default: return widget.type;
+    }
+}
+
+function setupAllDropZones() {
+    console.log('Setting up all drop zones');
+
+    // Setup drop zones for standalone columns
+    document.querySelectorAll('[data-standalone-col]').forEach(zone => {
+        const colIndex = parseInt(zone.dataset.standaloneCol);
+        console.log('Setting up standalone column drop zone:', colIndex);
+
+        setupDropZone(zone, (type, extraData) => {
+            console.log('Dropped in standalone column:', colIndex, type);
+            const widget = createWidget(type, extraData);
+            if (!widgets[colIndex].children) {
+                widgets[colIndex].children = [];
+            }
+            widgets[colIndex].children.push(widget);
+            renderWidgets();
+        });
+    });
+
+    // Setup drop zones for row columns
+    document.querySelectorAll('[data-drop-col]').forEach(zone => {
+        const rowIndex = parseInt(zone.dataset.dropRow);
+        const colIndex = parseInt(zone.dataset.dropCol);
+        console.log('Setting up row column drop zone:', rowIndex, colIndex);
+
+        setupDropZone(zone, (type, extraData) => {
+            console.log('Dropped in row column:', rowIndex, colIndex, type);
+            const widget = createWidget(type, extraData);
+            if (!widgets[rowIndex].children[colIndex].children) {
+                widgets[rowIndex].children[colIndex].children = [];
+            }
+            widgets[rowIndex].children[colIndex].children.push(widget);
+            renderWidgets();
+        });
+    });
+
+    // Setup nested drop zones
+    document.querySelectorAll('[data-nested-drop]').forEach(zone => {
+        const parentRow = parseInt(zone.dataset.parentRow);
+        const parentCol = parseInt(zone.dataset.parentCol);
+        const parentChild = parseInt(zone.dataset.parentChild);
+        const nestedCol = parseInt(zone.dataset.nestedCol);
+
+        setupDropZone(zone, (type, extraData) => {
+            const widget = createWidget(type, extraData);
+            const nestedRow = widgets[parentRow].children[parentCol].children[parentChild];
+            if (!nestedRow.children[nestedCol].children) {
+                nestedRow.children[nestedCol].children = [];
+            }
+            nestedRow.children[nestedCol].children.push(widget);
+            renderWidgets();
+        });
+    });
+
+    // Setup empty drop zones
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        const parent = zone.closest('[data-drop-col], [data-nested-drop], [data-standalone-col]');
+        if (parent) {
+            console.log('Setting up empty drop zone in parent');
+            // The parent drop zone handler will take care of this
+        }
+    });
+
+    // Setup modal widget drop zones
+    setupModalDropZones();
+}
+
+function editRow(index) {
+    const row = widgets[index];
+    currentEditingWidget = {widget: row, index: index};
+
+    document.getElementById('widgetModalTitle').textContent = 'Edit Row';
+    document.getElementById('widgetModalBody').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label">Number of Columns</label>
+            <input type="number" class="form-control" id="numColumns" value="${row.numColumns || 2}" min="1" max="6">
+            <small class="text-muted">Columns will be evenly distributed</small>
+        </div>
+        ${getStyleFormHtml(row)}
+    `;
+    widgetModal.show();
+}
+
+function editColumn(rowIndex, colIndex) {
+    const column = widgets[rowIndex].children[colIndex];
+    currentEditingWidget = {widget: column, rowIndex: rowIndex, colIndex: colIndex};
+
+    document.getElementById('widgetModalTitle').textContent = 'Edit Column';
+    document.getElementById('widgetModalBody').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label">Column Width</label>
+            <input type="number" class="form-control" id="colWidth" value="${column.width || 6}" min="1" max="12">
+            <small class="text-muted">Bootstrap grid units (1-12)</small>
+        </div>
+        ${getStyleFormHtml(column)}
+    `;
+    widgetModal.show();
+}
+
+function editStandaloneColumn(index) {
+    const column = widgets[index];
+    currentEditingWidget = {widget: column, index: index};
+
+    document.getElementById('widgetModalTitle').textContent = 'Edit Column';
+    document.getElementById('widgetModalBody').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label">Column Width</label>
+            <input type="number" class="form-control" id="colWidth" value="${column.width || 12}" min="1" max="12">
+            <small class="text-muted">Bootstrap grid units (1-12)</small>
+        </div>
+        ${getStyleFormHtml(column)}
+    `;
+    widgetModal.show();
+}
+
+function editWidget(index) {
+    const widget = widgets[index];
+    currentEditingWidget = {widget: widget, index: index};
+    showWidgetEditForm(widget);
+}
+
+function editNestedWidget(rowIndex, colIndex, childIndex) {
+    const widget = widgets[rowIndex].children[colIndex].children[childIndex];
+    currentEditingWidget = {widget: widget, rowIndex: rowIndex, colIndex: colIndex, childIndex: childIndex};
+    showWidgetEditForm(widget);
+}
+
+function editNestedRow(rowIndex, colIndex, childIndex) {
+    const row = widgets[rowIndex].children[colIndex].children[childIndex];
+    currentEditingWidget = {widget: row, rowIndex: rowIndex, colIndex: colIndex, childIndex: childIndex};
+
+    document.getElementById('widgetModalTitle').textContent = 'Edit Nested Row';
+    document.getElementById('widgetModalBody').innerHTML = `
+        <div class="mb-3">
+            <label class="form-label">Number of Columns</label>
+            <input type="number" class="form-control" id="numColumns" value="${row.numColumns || 2}" min="1" max="6">
+        </div>
+    `;
+    widgetModal.show();
+}
+
+function getStyleFormHtml(widget) {
+    if (!widget.styles) widget.styles = {};
+
+    return `
+        <div class="accordion mt-3" id="styleAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#styleSection">
+                        <i class="bi bi-palette me-2"></i> Styling Options
+                    </button>
+                </h2>
+                <div id="styleSection" class="accordion-collapse collapse" data-bs-parent="#styleAccordion">
+                    <div class="accordion-body">
+                        <h6 class="mb-2">Colors</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Text Color</label>
+                                <input type="color" class="form-control form-control-color" id="styleColor" value="${widget.styles.color || '#000000'}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Background Color</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" class="form-control form-control-color" id="styleBgColor" value="${widget.styles.backgroundColor && widget.styles.backgroundColor !== 'transparent' ? widget.styles.backgroundColor : '#ffffff'}" ${!widget.styles.backgroundColor || widget.styles.backgroundColor === 'transparent' ? 'disabled' : ''}>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="styleBgTransparent" ${!widget.styles.backgroundColor || widget.styles.backgroundColor === 'transparent' ? 'checked' : ''} onchange="document.getElementById('styleBgColor').disabled = this.checked">
+                                        <label class="form-check-label" for="styleBgTransparent">Transparent</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-3 mb-2">Text Styling</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Text Decoration</label>
+                                <select class="form-select" id="styleTextDecoration">
+                                    <option value="" ${!widget.styles.textDecoration ? 'selected' : ''}>Default</option>
+                                    <option value="none" ${widget.styles.textDecoration === 'none' ? 'selected' : ''}>None</option>
+                                    <option value="underline" ${widget.styles.textDecoration === 'underline' ? 'selected' : ''}>Underline</option>
+                                    <option value="overline" ${widget.styles.textDecoration === 'overline' ? 'selected' : ''}>Overline</option>
+                                    <option value="line-through" ${widget.styles.textDecoration === 'line-through' ? 'selected' : ''}>Line Through</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Font Weight</label>
+                                <select class="form-select" id="styleFontWeight">
+                                    <option value="" ${!widget.styles.fontWeight ? 'selected' : ''}>Default</option>
+                                    <option value="300" ${widget.styles.fontWeight === '300' ? 'selected' : ''}>Light (300)</option>
+                                    <option value="400" ${widget.styles.fontWeight === '400' ? 'selected' : ''}>Normal (400)</option>
+                                    <option value="500" ${widget.styles.fontWeight === '500' ? 'selected' : ''}>Medium (500)</option>
+                                    <option value="600" ${widget.styles.fontWeight === '600' ? 'selected' : ''}>Semi-Bold (600)</option>
+                                    <option value="700" ${widget.styles.fontWeight === '700' ? 'selected' : ''}>Bold (700)</option>
+                                    <option value="800" ${widget.styles.fontWeight === '800' ? 'selected' : ''}>Extra Bold (800)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Font Style</label>
+                                <select class="form-select" id="styleFontStyle">
+                                    <option value="" ${!widget.styles.fontStyle ? 'selected' : ''}>Default</option>
+                                    <option value="normal" ${widget.styles.fontStyle === 'normal' ? 'selected' : ''}>Normal</option>
+                                    <option value="italic" ${widget.styles.fontStyle === 'italic' ? 'selected' : ''}>Italic</option>
+                                    <option value="oblique" ${widget.styles.fontStyle === 'oblique' ? 'selected' : ''}>Oblique</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-3 mb-2">Layout</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Display</label>
+                                <select class="form-select" id="styleDisplay">
+                                    <option value="" ${!widget.styles.display ? 'selected' : ''}>Default</option>
+                                    <option value="block" ${widget.styles.display === 'block' ? 'selected' : ''}>Block</option>
+                                    <option value="inline-block" ${widget.styles.display === 'inline-block' ? 'selected' : ''}>Inline Block</option>
+                                    <option value="inline" ${widget.styles.display === 'inline' ? 'selected' : ''}>Inline</option>
+                                    <option value="flex" ${widget.styles.display === 'flex' ? 'selected' : ''}>Flex</option>
+                                    <option value="none" ${widget.styles.display === 'none' ? 'selected' : ''}>None (Hidden)</option>
+                                </select>
+                                <small class="text-muted">For child widgets: set to "Inline Block" to allow centering</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Text Align</label>
+                                <select class="form-select" id="styleTextAlign">
+                                    <option value="" ${!widget.styles.textAlign ? 'selected' : ''}>Default</option>
+                                    <option value="left" ${widget.styles.textAlign === 'left' ? 'selected' : ''}>Left</option>
+                                    <option value="center" ${widget.styles.textAlign === 'center' ? 'selected' : ''}>Center</option>
+                                    <option value="right" ${widget.styles.textAlign === 'right' ? 'selected' : ''}>Right</option>
+                                    <option value="justify" ${widget.styles.textAlign === 'justify' ? 'selected' : ''}>Justify</option>
+                                </select>
+                                <small class="text-muted">Centers text and inline content</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Align Items (Flex)</label>
+                                <select class="form-select" id="styleAlignItems">
+                                    <option value="" ${!widget.styles.alignItems ? 'selected' : ''}>Default</option>
+                                    <option value="flex-start" ${widget.styles.alignItems === 'flex-start' ? 'selected' : ''}>Start</option>
+                                    <option value="center" ${widget.styles.alignItems === 'center' ? 'selected' : ''}>Center</option>
+                                    <option value="flex-end" ${widget.styles.alignItems === 'flex-end' ? 'selected' : ''}>End</option>
+                                    <option value="stretch" ${widget.styles.alignItems === 'stretch' ? 'selected' : ''}>Stretch</option>
+                                </select>
+                                <small class="text-muted">Centers child elements in flex containers</small>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-3 mb-2">Background Media</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Background Image URL</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="styleBgImage" value="${widget.styles.backgroundImage || ''}" placeholder="https://...">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="openImageGallery('styleBgImage')">
+                                        <i class="bi bi-images"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Full URL to image or select from gallery</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Background Size</label>
+                                <select class="form-select" id="styleBgSize">
+                                    <option value="cover" ${(widget.styles.backgroundSize || 'cover') === 'cover' ? 'selected' : ''}>Cover</option>
+                                    <option value="contain" ${widget.styles.backgroundSize === 'contain' ? 'selected' : ''}>Contain</option>
+                                    <option value="auto" ${widget.styles.backgroundSize === 'auto' ? 'selected' : ''}>Auto</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Background Position</label>
+                            <select class="form-select" id="styleBgPosition">
+                                <option value="center" ${(widget.styles.backgroundPosition || 'center') === 'center' ? 'selected' : ''}>Center</option>
+                                <option value="top" ${widget.styles.backgroundPosition === 'top' ? 'selected' : ''}>Top</option>
+                                <option value="bottom" ${widget.styles.backgroundPosition === 'bottom' ? 'selected' : ''}>Bottom</option>
+                                <option value="left" ${widget.styles.backgroundPosition === 'left' ? 'selected' : ''}>Left</option>
+                                <option value="right" ${widget.styles.backgroundPosition === 'right' ? 'selected' : ''}>Right</option>
+                            </select>
+                        </div>
+
+                        <h6 class="mt-3 mb-2">Borders</h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label small">Top</label>
+                                <input type="text" class="form-control form-control-sm" id="styleBorderTop" value="${widget.styles.borderTop || ''}" placeholder="e.g. 1px solid #000">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label small">Right</label>
+                                <input type="text" class="form-control form-control-sm" id="styleBorderRight" value="${widget.styles.borderRight || ''}" placeholder="e.g. 1px solid #000">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label small">Bottom</label>
+                                <input type="text" class="form-control form-control-sm" id="styleBorderBottom" value="${widget.styles.borderBottom || ''}" placeholder="e.g. 1px solid #000">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label small">Left</label>
+                                <input type="text" class="form-control form-control-sm" id="styleBorderLeft" value="${widget.styles.borderLeft || ''}" placeholder="e.g. 1px solid #000">
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Border Radius</label>
+                                <input type="text" class="form-control" id="styleBorderRadius" value="${widget.styles.borderRadius || ''}" placeholder="e.g. 8px">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Drop Shadow Preset</label>
+                                <select class="form-select" id="styleShadowPreset" onchange="applyShadowPreset(this.value)">
+                                    <option value="">None</option>
+                                    <option value="0 1px 3px rgba(0,0,0,0.12)">Small</option>
+                                    <option value="0 4px 6px rgba(0,0,0,0.1)">Medium</option>
+                                    <option value="0 10px 15px rgba(0,0,0,0.1)">Large</option>
+                                    <option value="0 20px 25px rgba(0,0,0,0.15)">Extra Large</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Box Shadow (Custom)</label>
+                            <input type="text" class="form-control" id="styleBoxShadow" value="${widget.styles.boxShadow || ''}" placeholder="e.g. 0 2px 4px rgba(0,0,0,0.1)">
+                            <small class="text-muted">Format: offset-x offset-y blur-radius spread-radius color</small>
+                        </div>
+
+                        <h6 class="mt-3 mb-2">Spacing</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Padding</label>
+                                <input type="text" class="form-control" id="stylePadding" value="${widget.styles.padding || ''}" placeholder="e.g. 10px or 10px 20px">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Margin</label>
+                                <input type="text" class="form-control" id="styleMargin" value="${widget.styles.margin || ''}" placeholder="e.g. 10px or 10px 20px">
+                            </div>
+                        </div>
+
+                        <h6 class="mt-3 mb-2">Additional</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Width</label>
+                                <input type="text" class="form-control" id="styleWidth" value="${widget.styles.width || ''}" placeholder="e.g. 100% or 300px">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Height</label>
+                                <input type="text" class="form-control" id="styleHeight" value="${widget.styles.height || ''}" placeholder="e.g. auto or 200px">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Custom CSS</label>
+                            <textarea class="form-control" id="styleCustom" rows="3" placeholder="Additional CSS properties, one per line (e.g. font-size: 16px)">${widget.styles.custom || ''}</textarea>
+                            <small class="text-muted">Enter custom CSS properties like: font-size: 16px; font-weight: bold;</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function showWidgetEditForm(widget) {
+    document.getElementById('widgetModalTitle').textContent = `Edit ${widget.type.charAt(0).toUpperCase() + widget.type.slice(1)}`;
+
+    let formHtml = '';
+
+    if (widget.type === 'heading') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <input type="text" class="form-control" id="widgetContent" value="${widget.content}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Level</label>
+                <select class="form-select" id="widgetLevel">
+                    <option value="h1" ${widget.level === 'h1' ? 'selected' : ''}>H1</option>
+                    <option value="h2" ${widget.level === 'h2' ? 'selected' : ''}>H2</option>
+                    <option value="h3" ${widget.level === 'h3' ? 'selected' : ''}>H3</option>
+                    <option value="h4" ${widget.level === 'h4' ? 'selected' : ''}>H4</option>
+                    <option value="h5" ${widget.level === 'h5' ? 'selected' : ''}>H5</option>
+                    <option value="h6" ${widget.level === 'h6' ? 'selected' : ''}>H6</option>
+                </select>
+            </div>
+        `;
+    } else if (widget.type === 'richtext') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea class="form-control" id="widgetContent" rows="6">${widget.content}</textarea>
+            </div>
+        `;
+    } else if (widget.type === 'html') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">HTML Code</label>
+                <textarea class="form-control" id="widgetContent" rows="10" style="font-family: monospace;">${widget.content}</textarea>
+            </div>
+        `;
+    } else if (widget.type === 'button') {
+        const dropdownItems = widget.dropdownItems || [];
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Button Text</label>
+                <input type="text" class="form-control" id="widgetText" value="${widget.text}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">URL</label>
+                <input type="text" class="form-control" id="widgetUrl" value="${widget.url}">
+                <small class="text-muted">Main button URL (used when no dropdown items)</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Style</label>
+                <select class="form-select" id="widgetStyle">
+                    <option value="primary" ${widget.style === 'primary' ? 'selected' : ''}>Primary</option>
+                    <option value="secondary" ${widget.style === 'secondary' ? 'selected' : ''}>Secondary</option>
+                    <option value="success" ${widget.style === 'success' ? 'selected' : ''}>Success</option>
+                    <option value="danger" ${widget.style === 'danger' ? 'selected' : ''}>Danger</option>
+                    <option value="warning" ${widget.style === 'warning' ? 'selected' : ''}>Warning</option>
+                    <option value="info" ${widget.style === 'info' ? 'selected' : ''}>Info</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Dropdown Items (2nd & 3rd Tier)</label>
+                <div id="dropdownItems">
+                    ${dropdownItems.map((item, idx) => `
+                        <div class="card mb-2" data-item-idx="${idx}">
+                            <div class="card-body">
+                                <div class="d-flex gap-2 mb-2">
+                                    <input type="text" class="form-control" placeholder="2nd tier text" value="${item.text}" data-idx="${idx}" data-field="text">
+                                    <input type="text" class="form-control" placeholder="URL" value="${item.url}" data-idx="${idx}" data-field="url">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removeDropdownItem(${idx})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="ms-3">
+                                    <small class="text-muted">3rd Tier Items:</small>
+                                    <div class="nested-items mt-2" data-parent-idx="${idx}">
+                                        ${(item.nestedItems || []).map((nested, nIdx) => `
+                                            <div class="input-group input-group-sm mb-1">
+                                                <input type="text" class="form-control" placeholder="3rd tier text" value="${nested.text}" data-parent="${idx}" data-nested-idx="${nIdx}" data-nested-field="text">
+                                                <input type="text" class="form-control" placeholder="URL" value="${nested.url}" data-parent="${idx}" data-nested-idx="${nIdx}" data-nested-field="url">
+                                                <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addNestedItem(${idx})">
+                                        <i class="bi bi-plus"></i> Add 3rd Tier Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="addDropdownItem()">
+                    <i class="bi bi-plus"></i> Add 2nd Tier Dropdown Item
+                </button>
+            </div>
+        `;
+    } else if (widget.type === 'link') {
+        const dropdownItems = widget.dropdownItems || [];
+        if (!widget.styles) widget.styles = {};
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Link Text</label>
+                <input type="text" class="form-control" id="widgetText" value="${widget.text}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Link to Page (Optional)</label>
+                <select class="form-select" id="widgetPageSelect" onchange="selectPageForLink(this.value)">
+                    <option value="">-- Select a page or enter custom URL --</option>
+                    ${sitePages.map(p => `<option value="${p.id}">${p.title}</option>`).join('')}
+                </select>
+                <small class="text-muted">Select a page from this site, or enter a custom URL below</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">URL</label>
+                <input type="text" class="form-control" id="widgetUrl" value="${widget.url}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Target</label>
+                <select class="form-select" id="widgetTarget">
+                    <option value="_self" ${widget.target === '_self' ? 'selected' : ''}>Same Window</option>
+                    <option value="_blank" ${widget.target === '_blank' ? 'selected' : ''}>New Tab</option>
+                </select>
+            </div>
+            <hr>
+            <h6>Link Appearance</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Link Color</label>
+                    <input type="color" class="form-control form-control-color w-100" id="linkColor" value="${widget.styles.color || '#0d6efd'}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Text Decoration</label>
+                    <select class="form-select" id="linkTextDecoration">
+                        <option value="" ${!widget.styles.textDecoration ? 'selected' : ''}>Default (underline)</option>
+                        <option value="none" ${widget.styles.textDecoration === 'none' ? 'selected' : ''}>None</option>
+                        <option value="underline" ${widget.styles.textDecoration === 'underline' ? 'selected' : ''}>Underline</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Dropdown Items (2nd & 3rd Tier)</label>
+                <div id="dropdownItems">
+                    ${dropdownItems.map((item, idx) => `
+                        <div class="card mb-2" data-item-idx="${idx}">
+                            <div class="card-body">
+                                <div class="d-flex gap-2 mb-2">
+                                    <input type="text" class="form-control" placeholder="2nd tier text" value="${item.text}" data-idx="${idx}" data-field="text">
+                                    <input type="text" class="form-control" placeholder="URL" value="${item.url}" data-idx="${idx}" data-field="url">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removeDropdownItem(${idx})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="ms-3">
+                                    <small class="text-muted">3rd Tier Items:</small>
+                                    <div class="nested-items mt-2" data-parent-idx="${idx}">
+                                        ${(item.nestedItems || []).map((nested, nIdx) => `
+                                            <div class="input-group input-group-sm mb-1">
+                                                <input type="text" class="form-control" placeholder="3rd tier text" value="${nested.text}" data-parent="${idx}" data-nested-idx="${nIdx}" data-nested-field="text">
+                                                <input type="text" class="form-control" placeholder="URL" value="${nested.url}" data-parent="${idx}" data-nested-idx="${nIdx}" data-nested-field="url">
+                                                <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addNestedItem(${idx})">
+                                        <i class="bi bi-plus"></i> Add 3rd Tier Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addDropdownItem()">
+                    <i class="bi bi-plus"></i> Add 2nd Tier Dropdown Item
+                </button>
+            </div>
+        `;
+    } else if (widget.type === 'card') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input type="text" class="form-control" id="widgetTitle" value="${widget.title}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea class="form-control" id="widgetContent" rows="4">${widget.content}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Image URL (optional)</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="widgetImage" value="${widget.image || ''}">
+                    <button class="btn btn-outline-secondary" type="button" onclick="openImageGallery('widgetImage')">
+                        <i class="bi bi-images"></i> Browse Gallery
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (widget.type === 'alert') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Message</label>
+                <textarea class="form-control" id="widgetContent" rows="3">${widget.content}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Style</label>
+                <select class="form-select" id="widgetStyle">
+                    <option value="primary" ${widget.style === 'primary' ? 'selected' : ''}>Primary</option>
+                    <option value="secondary" ${widget.style === 'secondary' ? 'selected' : ''}>Secondary</option>
+                    <option value="success" ${widget.style === 'success' ? 'selected' : ''}>Success</option>
+                    <option value="danger" ${widget.style === 'danger' ? 'selected' : ''}>Danger</option>
+                    <option value="warning" ${widget.style === 'warning' ? 'selected' : ''}>Warning</option>
+                    <option value="info" ${widget.style === 'info' ? 'selected' : ''}>Info</option>
+                </select>
+            </div>
+        `;
+    } else if (widget.type === 'image') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Image URL</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="widgetSrc" value="${widget.src}">
+                    <button class="btn btn-outline-secondary" type="button" onclick="openImageGallery('widgetSrc')">
+                        <i class="bi bi-images"></i> Browse Gallery
+                    </button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Alt Text</label>
+                <input type="text" class="form-control" id="widgetAlt" value="${widget.alt}">
+            </div>
+        `;
+    } else if (widget.type === 'video') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Video URL (YouTube/Vimeo embed)</label>
+                <input type="text" class="form-control" id="widgetUrl" value="${widget.url || ''}">
+                <small class="text-muted">Use embed URLs like: https://www.youtube.com/embed/VIDEO_ID</small>
+            </div>
+        `;
+    } else if (widget.type === 'accordion') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Accordion Items</label>
+                <div id="accordionItemsContainer">
+                    ${(widget.items || []).map((item, idx) => `
+                        <div class="card mb-2" data-item-index="${idx}">
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control accordion-item-title" placeholder="Title" value="${item.title}">
+                                </div>
+                                <div class="mb-2">
+                                    <textarea class="form-control accordion-item-content" placeholder="Content" rows="2">${item.content}</textarea>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input accordion-item-expanded" ${item.expanded ? 'checked' : ''}>
+                                    <label class="form-check-label">Expanded by default</label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeAccordionItem(${idx})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="addAccordionItem()">Add Item</button>
+            </div>
+        `;
+    } else if (widget.type === 'breadcrumb') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Breadcrumb Items</label>
+                <div id="breadcrumbItemsContainer">
+                    ${(widget.items || []).map((item, idx) => `
+                        <div class="card mb-2" data-item-index="${idx}">
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control breadcrumb-item-text" placeholder="Text" value="${item.text}">
+                                </div>
+                                <div class="mb-2">
+                                    <input type="text" class="form-control breadcrumb-item-url" placeholder="URL" value="${item.url || ''}">
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input breadcrumb-item-active" ${item.active ? 'checked' : ''}>
+                                    <label class="form-check-label">Active (current page)</label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeBreadcrumbItem(${idx})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="addBreadcrumbItem()">Add Item</button>
+            </div>
+        `;
+    } else if (widget.type === 'collapse') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Button Title</label>
+                <input type="text" class="form-control" id="widgetTitle" value="${widget.title}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Collapsed Content</label>
+                <textarea class="form-control" id="widgetContent" rows="4">${widget.content}</textarea>
+            </div>
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="widgetExpanded" ${widget.expanded ? 'checked' : ''}>
+                <label class="form-check-label" for="widgetExpanded">Expanded by default</label>
+            </div>
+        `;
+    } else if (widget.type === 'tabs') {
+        formHtml = `
+            <div class="mb-3">
+                <label class="form-label">Tabs</label>
+                <div id="tabsContainer">
+                    ${(widget.tabs || []).map((tab, idx) => `
+                        <div class="card mb-2" data-tab-index="${idx}">
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control tab-title" placeholder="Tab Title" value="${tab.title}">
+                                </div>
+                                <div class="mb-2">
+                                    <textarea class="form-control tab-content" placeholder="Tab Content" rows="2">${tab.content}</textarea>
+                                </div>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input tab-active" ${tab.active ? 'checked' : ''}>
+                                    <label class="form-check-label">Active tab</label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeTab(${idx})">Remove</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="addTab()">Add Tab</button>
+            </div>
+        `;
+    } else if (widget.type === 'caspio') {
+        formHtml = `
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Select a DataPage from the Caspio sidebar on the right, or manually enter the details below.
+            </div>
+            <div class="mb-3">
+                <label class="form-label">DataPage Name</label>
+                <input type="text" class="form-control" id="caspioDatapageName" value="${widget.datapageName || ''}" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">App Name</label>
+                <input type="text" class="form-control" id="caspioAppName" value="${widget.appName || ''}" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">DataPage Key</label>
+                <input type="text" class="form-control" id="caspioDatapageKey" value="${widget.datapageKey || ''}">
+                <small class="text-muted">The unique key for embedding this datapage</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Deploy URL</label>
+                <input type="text" class="form-control" id="caspioDeployUrl" value="${widget.deployUrl || ''}">
+            </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="caspioHidden" ${widget.hidden ? 'checked' : ''}>
+                    <label class="form-check-label" for="caspioHidden">
+                        <strong>Hidden</strong> - DataPage won't be visible on the page
+                    </label>
+                </div>
+                <small class="text-muted ms-4">Use this for datapages only accessed via <code>openSiteModal()</code> or JavaScript</small>
+            </div>
+        `;
+    } else if (widget.type === 'modal') {
+        formHtml = `
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle"></i>
+                Configure the button and modal settings. Drag widgets into the modal from the canvas preview.
+            </div>
+            <h6 class="border-bottom pb-2 mb-3">Button Settings</h6>
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Button Text</label>
+                    <input type="text" class="form-control" id="modalButtonText" value="${widget.buttonText || 'Open Modal'}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Button Style</label>
+                    <select class="form-select" id="modalButtonStyle">
+                        <option value="primary" ${widget.buttonStyle === 'primary' ? 'selected' : ''}>Primary</option>
+                        <option value="secondary" ${widget.buttonStyle === 'secondary' ? 'selected' : ''}>Secondary</option>
+                        <option value="success" ${widget.buttonStyle === 'success' ? 'selected' : ''}>Success</option>
+                        <option value="danger" ${widget.buttonStyle === 'danger' ? 'selected' : ''}>Danger</option>
+                        <option value="warning" ${widget.buttonStyle === 'warning' ? 'selected' : ''}>Warning</option>
+                        <option value="info" ${widget.buttonStyle === 'info' ? 'selected' : ''}>Info</option>
+                        <option value="light" ${widget.buttonStyle === 'light' ? 'selected' : ''}>Light</option>
+                        <option value="dark" ${widget.buttonStyle === 'dark' ? 'selected' : ''}>Dark</option>
+                        <option value="link" ${widget.buttonStyle === 'link' ? 'selected' : ''}>Link</option>
+                    </select>
+                </div>
+            </div>
+            <h6 class="border-bottom pb-2 mb-3 mt-3">Modal Settings</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Modal ID</label>
+                    <input type="text" class="form-control" id="modalId" value="${widget.modalId || ''}">
+                    <small class="text-muted">Use this ID for openSiteModal() function</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Modal Size</label>
+                    <select class="form-select" id="modalSize">
+                        <option value="" ${!widget.modalSize ? 'selected' : ''}>Default</option>
+                        <option value="sm" ${widget.modalSize === 'sm' ? 'selected' : ''}>Small</option>
+                        <option value="lg" ${widget.modalSize === 'lg' ? 'selected' : ''}>Large</option>
+                        <option value="xl" ${widget.modalSize === 'xl' ? 'selected' : ''}>Extra Large</option>
+                        <option value="fullscreen" ${widget.modalSize === 'fullscreen' ? 'selected' : ''}>Fullscreen</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Modal Title</label>
+                <input type="text" class="form-control" id="modalTitle" value="${widget.modalTitle || ''}">
+            </div>
+            <h6 class="border-bottom pb-2 mb-3 mt-3">Modal Contents</h6>
+            <div class="alert alert-secondary">
+                <i class="bi bi-info-circle"></i>
+                <strong>${(widget.children || []).length}</strong> widget(s) inside this modal.
+                <br><small>Edit modal contents from the canvas preview by clicking on the widget items.</small>
+            </div>
+        `;
+    }
+
+    // Add styling section to all widgets
+    formHtml += getStyleFormHtml(widget);
+
+    document.getElementById('widgetModalBody').innerHTML = formHtml;
+    widgetModal.show();
+}
+
+function applyShadowPreset(value) {
+    const shadowInput = document.getElementById('styleBoxShadow');
+    if (value && value !== 'custom') {
+        shadowInput.value = value;
+    }
+}
+
+function saveWidgetEdit() {
+    if (!currentEditingWidget) return;
+
+    const widget = currentEditingWidget.widget;
+
+    if (widget.type === 'row') {
+        widget.numColumns = parseInt(document.getElementById('numColumns').value);
+    } else if (widget.type === 'column') {
+        widget.width = parseInt(document.getElementById('colWidth').value);
+    } else if (widget.type === 'heading') {
+        widget.content = document.getElementById('widgetContent').value;
+        widget.level = document.getElementById('widgetLevel').value;
+    } else if (widget.type === 'richtext' || widget.type === 'html') {
+        widget.content = document.getElementById('widgetContent').value;
+    } else if (widget.type === 'button') {
+        widget.text = document.getElementById('widgetText').value;
+        widget.url = document.getElementById('widgetUrl').value;
+        widget.style = document.getElementById('widgetStyle').value;
+
+        // Collect dropdown items with nested items
+        const dropdownItems = [];
+        const mainInputs = document.querySelectorAll('#dropdownItems input[data-idx]');
+        const itemsMap = {};
+
+        // Collect 2nd tier items
+        mainInputs.forEach(input => {
+            const idx = input.dataset.idx;
+            const field = input.dataset.field;
+            if (!itemsMap[idx]) itemsMap[idx] = { nestedItems: [] };
+            itemsMap[idx][field] = input.value;
+        });
+
+        // Collect 3rd tier nested items
+        const nestedInputs = document.querySelectorAll('#dropdownItems input[data-nested-idx]');
+        const nestedMap = {};
+
+        nestedInputs.forEach(input => {
+            const parent = input.dataset.parent;
+            const nIdx = input.dataset.nestedIdx;
+            const field = input.dataset.nestedField;
+            const key = `${parent}-${nIdx}`;
+            if (!nestedMap[key]) nestedMap[key] = { parent: parent };
+            nestedMap[key][field] = input.value;
+        });
+
+        // Organize nested items into their parent items
+        Object.values(nestedMap).forEach(nested => {
+            const parentIdx = nested.parent;
+            if (itemsMap[parentIdx]) {
+                itemsMap[parentIdx].nestedItems.push({
+                    text: nested.text,
+                    url: nested.url
+                });
+            }
+        });
+
+        // Build final dropdown items array
+        Object.values(itemsMap).forEach(item => {
+            if (item.text && item.url) {
+                dropdownItems.push({
+                    text: item.text,
+                    url: item.url,
+                    nestedItems: item.nestedItems.filter(n => n.text && n.url)
+                });
+            }
+        });
+
+        widget.dropdownItems = dropdownItems;
+    } else if (widget.type === 'link') {
+        widget.text = document.getElementById('widgetText').value;
+        widget.url = document.getElementById('widgetUrl').value;
+        widget.target = document.getElementById('widgetTarget').value;
+
+        // Collect dropdown items with nested items
+        const dropdownItems = [];
+        const mainInputs = document.querySelectorAll('#dropdownItems input[data-idx]');
+        const itemsMap = {};
+
+        // Collect 2nd tier items
+        mainInputs.forEach(input => {
+            const idx = input.dataset.idx;
+            const field = input.dataset.field;
+            if (!itemsMap[idx]) itemsMap[idx] = { nestedItems: [] };
+            itemsMap[idx][field] = input.value;
+        });
+
+        // Collect 3rd tier nested items
+        const nestedInputs = document.querySelectorAll('#dropdownItems input[data-nested-idx]');
+        const nestedMap = {};
+
+        nestedInputs.forEach(input => {
+            const parent = input.dataset.parent;
+            const nIdx = input.dataset.nestedIdx;
+            const field = input.dataset.nestedField;
+            const key = `${parent}-${nIdx}`;
+            if (!nestedMap[key]) nestedMap[key] = { parent: parent };
+            nestedMap[key][field] = input.value;
+        });
+
+        // Organize nested items into their parent items
+        Object.values(nestedMap).forEach(nested => {
+            const parentIdx = nested.parent;
+            if (itemsMap[parentIdx]) {
+                itemsMap[parentIdx].nestedItems.push({
+                    text: nested.text,
+                    url: nested.url
+                });
+            }
+        });
+
+        // Build final dropdown items array
+        Object.values(itemsMap).forEach(item => {
+            if (item.text && item.url) {
+                dropdownItems.push({
+                    text: item.text,
+                    url: item.url,
+                    nestedItems: item.nestedItems.filter(n => n.text && n.url)
+                });
+            }
+        });
+
+        widget.dropdownItems = dropdownItems;
+
+        // Save link-specific styles
+        if (!widget.styles) widget.styles = {};
+        const linkColorInput = document.getElementById('linkColor');
+        const linkTextDecInput = document.getElementById('linkTextDecoration');
+        if (linkColorInput) {
+            widget.styles.color = linkColorInput.value;
+        }
+        if (linkTextDecInput && linkTextDecInput.value) {
+            widget.styles.textDecoration = linkTextDecInput.value;
+        } else if (linkTextDecInput && !linkTextDecInput.value) {
+            delete widget.styles.textDecoration;
+        }
+    } else if (widget.type === 'card') {
+        widget.title = document.getElementById('widgetTitle').value;
+        widget.content = document.getElementById('widgetContent').value;
+        widget.image = document.getElementById('widgetImage').value;
+    } else if (widget.type === 'alert') {
+        widget.content = document.getElementById('widgetContent').value;
+        widget.style = document.getElementById('widgetStyle').value;
+    } else if (widget.type === 'image') {
+        widget.src = document.getElementById('widgetSrc').value;
+        widget.alt = document.getElementById('widgetAlt').value;
+    } else if (widget.type === 'video') {
+        widget.url = document.getElementById('widgetUrl').value;
+    } else if (widget.type === 'accordion') {
+        const items = [];
+        document.querySelectorAll('#accordionItemsContainer .card').forEach((card, idx) => {
+            items.push({
+                title: card.querySelector('.accordion-item-title').value,
+                content: card.querySelector('.accordion-item-content').value,
+                expanded: card.querySelector('.accordion-item-expanded').checked
+            });
+        });
+        widget.items = items;
+    } else if (widget.type === 'breadcrumb') {
+        const items = [];
+        document.querySelectorAll('#breadcrumbItemsContainer .card').forEach((card, idx) => {
+            items.push({
+                text: card.querySelector('.breadcrumb-item-text').value,
+                url: card.querySelector('.breadcrumb-item-url').value,
+                active: card.querySelector('.breadcrumb-item-active').checked
+            });
+        });
+        widget.items = items;
+    } else if (widget.type === 'collapse') {
+        widget.title = document.getElementById('widgetTitle').value;
+        widget.content = document.getElementById('widgetContent').value;
+        widget.expanded = document.getElementById('widgetExpanded').checked;
+    } else if (widget.type === 'tabs') {
+        const tabs = [];
+        document.querySelectorAll('#tabsContainer .card').forEach((card, idx) => {
+            tabs.push({
+                title: card.querySelector('.tab-title').value,
+                content: card.querySelector('.tab-content').value,
+                active: card.querySelector('.tab-active').checked
+            });
+        });
+        widget.tabs = tabs;
+    } else if (widget.type === 'caspio') {
+        widget.datapageName = document.getElementById('caspioDatapageName').value;
+        widget.appName = document.getElementById('caspioAppName').value;
+        widget.datapageKey = document.getElementById('caspioDatapageKey').value;
+        widget.deployUrl = document.getElementById('caspioDeployUrl').value;
+        widget.hidden = document.getElementById('caspioHidden').checked;
+    } else if (widget.type === 'modal') {
+        widget.buttonText = document.getElementById('modalButtonText').value;
+        widget.buttonStyle = document.getElementById('modalButtonStyle').value;
+        widget.modalId = document.getElementById('modalId').value;
+        widget.modalSize = document.getElementById('modalSize').value;
+        widget.modalTitle = document.getElementById('modalTitle').value;
+        // children are managed separately via drag/drop
+    }
+
+    // Save styling for all widgets
+    if (!widget.styles) widget.styles = {};
+
+    const styleInputs = {
+        color: document.getElementById('styleColor'),
+        backgroundColor: document.getElementById('styleBgColor'),
+        textDecoration: document.getElementById('styleTextDecoration'),
+        fontWeight: document.getElementById('styleFontWeight'),
+        fontStyle: document.getElementById('styleFontStyle'),
+        display: document.getElementById('styleDisplay'),
+        textAlign: document.getElementById('styleTextAlign'),
+        alignItems: document.getElementById('styleAlignItems'),
+        backgroundImage: document.getElementById('styleBgImage'),
+        backgroundSize: document.getElementById('styleBgSize'),
+        backgroundPosition: document.getElementById('styleBgPosition'),
+        borderTop: document.getElementById('styleBorderTop'),
+        borderRight: document.getElementById('styleBorderRight'),
+        borderBottom: document.getElementById('styleBorderBottom'),
+        borderLeft: document.getElementById('styleBorderLeft'),
+        borderRadius: document.getElementById('styleBorderRadius'),
+        boxShadow: document.getElementById('styleBoxShadow'),
+        padding: document.getElementById('stylePadding'),
+        margin: document.getElementById('styleMargin'),
+        width: document.getElementById('styleWidth'),
+        height: document.getElementById('styleHeight'),
+        custom: document.getElementById('styleCustom')
+    };
+
+    // Handle transparent background option specially
+    const bgTransparentCheckbox = document.getElementById('styleBgTransparent');
+    if (bgTransparentCheckbox && bgTransparentCheckbox.checked) {
+        widget.styles.backgroundColor = 'transparent';
+    }
+
+    for (const [key, input] of Object.entries(styleInputs)) {
+        // Skip backgroundColor if transparent is checked (already handled above)
+        if (key === 'backgroundColor' && bgTransparentCheckbox && bgTransparentCheckbox.checked) {
+            continue;
+        }
+        if (input && input.value) {
+            widget.styles[key] = input.value;
+        } else if (widget.styles[key]) {
+            delete widget.styles[key];
+        }
+    }
+
+    renderWidgets();
+    widgetModal.hide();
+    currentEditingWidget = null;
+}
+
+function deleteWidget(index) {
+    if (!confirm('Delete this widget?')) return;
+    widgets.splice(index, 1);
+    renderWidgets();
+}
+
+function deleteNestedWidget(rowIndex, colIndex, childIndex) {
+    if (!confirm('Delete this widget?')) return;
+    widgets[rowIndex].children[colIndex].children.splice(childIndex, 1);
+    renderWidgets();
+}
+
+function addDropdownItem() {
+    const container = document.getElementById('dropdownItems');
+    const currentCards = container.querySelectorAll('.card');
+    const idx = currentCards.length;
+
+    const newCard = document.createElement('div');
+    newCard.className = 'card mb-2';
+    newCard.setAttribute('data-item-idx', idx);
+    newCard.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex gap-2 mb-2">
+                <input type="text" class="form-control" placeholder="2nd tier text" value="" data-idx="${idx}" data-field="text">
+                <input type="text" class="form-control" placeholder="URL" value="" data-idx="${idx}" data-field="url">
+                <button class="btn btn-outline-danger" type="button" onclick="removeDropdownItem(${idx})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="ms-3">
+                <small class="text-muted">3rd Tier Items:</small>
+                <div class="nested-items mt-2" data-parent-idx="${idx}">
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addNestedItem(${idx})">
+                    <i class="bi bi-plus"></i> Add 3rd Tier Item
+                </button>
+            </div>
+        </div>
+    `;
+    container.appendChild(newCard);
+}
+
+function removeDropdownItem(idx) {
+    const card = document.querySelector(`#dropdownItems .card[data-item-idx="${idx}"]`);
+    card?.remove();
+}
+
+function addNestedItem(parentIdx) {
+    const container = document.querySelector(`.nested-items[data-parent-idx="${parentIdx}"]`);
+    const currentNested = container.querySelectorAll('.input-group');
+    const nIdx = currentNested.length;
+
+    const newNested = document.createElement('div');
+    newNested.className = 'input-group input-group-sm mb-1';
+    newNested.innerHTML = `
+        <input type="text" class="form-control" placeholder="3rd tier text" value="" data-parent="${parentIdx}" data-nested-idx="${nIdx}" data-nested-field="text">
+        <input type="text" class="form-control" placeholder="URL" value="" data-parent="${parentIdx}" data-nested-idx="${nIdx}" data-nested-field="url">
+        <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">
+            <i class="bi bi-x"></i>
+        </button>
+    `;
+    container.appendChild(newNested);
+}
+
+function deleteDeepNested(rowIndex, colIndex, childIndex, nestedColIndex, idx) {
+    if (!confirm('Delete?')) return;
+    widgets[rowIndex].children[colIndex].children[childIndex].children[nestedColIndex].children.splice(idx, 1);
+    renderWidgets();
+}
+
+function applyPageStyles() {
+    const canvasPage = document.querySelector('.canvas-page');
+    if (!canvasPage || !pageStyles) return;
+
+    // Colors
+    if (pageStyles.backgroundColor) canvasPage.style.backgroundColor = pageStyles.backgroundColor;
+    if (pageStyles.color) canvasPage.style.color = pageStyles.color;
+
+    // Text styling
+    if (pageStyles.textDecoration) canvasPage.style.textDecoration = pageStyles.textDecoration;
+    if (pageStyles.fontWeight) canvasPage.style.fontWeight = pageStyles.fontWeight;
+    if (pageStyles.fontStyle) canvasPage.style.fontStyle = pageStyles.fontStyle;
+
+    // Background media
+    if (pageStyles.backgroundImage) {
+        canvasPage.style.backgroundImage = `url('${pageStyles.backgroundImage}')`;
+        canvasPage.style.backgroundRepeat = 'no-repeat';
+    }
+    if (pageStyles.backgroundSize) canvasPage.style.backgroundSize = pageStyles.backgroundSize;
+    if (pageStyles.backgroundPosition) canvasPage.style.backgroundPosition = pageStyles.backgroundPosition;
+
+    // Spacing
+    if (pageStyles.padding) canvasPage.style.padding = pageStyles.padding;
+    if (pageStyles.margin) canvasPage.style.margin = pageStyles.margin;
+
+    // Custom CSS
+    if (pageStyles.custom) canvasPage.style.cssText += pageStyles.custom;
+}
+
+function editPageStyles() {
+    if (!pageStyles) pageStyles = {};
+
+    document.getElementById('widgetModalTitle').textContent = 'Page Styling';
+    document.getElementById('widgetModalBody').innerHTML = `
+        <h6 class="mb-2">Colors</h6>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Text Color</label>
+                <input type="color" class="form-control form-control-color" id="pageTextColor" value="${pageStyles.color || '#000000'}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Background Color</label>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="color" class="form-control form-control-color" id="pageBgColor" value="${pageStyles.backgroundColor && pageStyles.backgroundColor !== 'transparent' ? pageStyles.backgroundColor : '#ffffff'}" ${!pageStyles.backgroundColor || pageStyles.backgroundColor === 'transparent' ? 'disabled' : ''}>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="pageBgTransparent" ${!pageStyles.backgroundColor || pageStyles.backgroundColor === 'transparent' ? 'checked' : ''} onchange="document.getElementById('pageBgColor').disabled = this.checked">
+                        <label class="form-check-label" for="pageBgTransparent">Transparent</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="mt-3 mb-2">Text Styling</h6>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Text Decoration</label>
+                <select class="form-select" id="pageTextDecoration">
+                    <option value="" ${!pageStyles.textDecoration ? 'selected' : ''}>Default</option>
+                    <option value="none" ${pageStyles.textDecoration === 'none' ? 'selected' : ''}>None</option>
+                    <option value="underline" ${pageStyles.textDecoration === 'underline' ? 'selected' : ''}>Underline</option>
+                    <option value="overline" ${pageStyles.textDecoration === 'overline' ? 'selected' : ''}>Overline</option>
+                    <option value="line-through" ${pageStyles.textDecoration === 'line-through' ? 'selected' : ''}>Line Through</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Font Weight</label>
+                <select class="form-select" id="pageFontWeight">
+                    <option value="" ${!pageStyles.fontWeight ? 'selected' : ''}>Default</option>
+                    <option value="300" ${pageStyles.fontWeight === '300' ? 'selected' : ''}>Light (300)</option>
+                    <option value="400" ${pageStyles.fontWeight === '400' ? 'selected' : ''}>Normal (400)</option>
+                    <option value="500" ${pageStyles.fontWeight === '500' ? 'selected' : ''}>Medium (500)</option>
+                    <option value="600" ${pageStyles.fontWeight === '600' ? 'selected' : ''}>Semi-Bold (600)</option>
+                    <option value="700" ${pageStyles.fontWeight === '700' ? 'selected' : ''}>Bold (700)</option>
+                    <option value="800" ${pageStyles.fontWeight === '800' ? 'selected' : ''}>Extra Bold (800)</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Font Style</label>
+                <select class="form-select" id="pageFontStyle">
+                    <option value="" ${!pageStyles.fontStyle ? 'selected' : ''}>Default</option>
+                    <option value="normal" ${pageStyles.fontStyle === 'normal' ? 'selected' : ''}>Normal</option>
+                    <option value="italic" ${pageStyles.fontStyle === 'italic' ? 'selected' : ''}>Italic</option>
+                    <option value="oblique" ${pageStyles.fontStyle === 'oblique' ? 'selected' : ''}>Oblique</option>
+                </select>
+            </div>
+        </div>
+
+        <h6 class="mt-3 mb-2">Background Media</h6>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Background Image URL</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="pageBgImage" value="${pageStyles.backgroundImage || ''}" placeholder="https://...">
+                    <button class="btn btn-outline-secondary" type="button" onclick="openImageGallery('pageBgImage')">
+                        <i class="bi bi-images"></i>
+                    </button>
+                </div>
+                <small class="text-muted">Full URL to image or select from gallery</small>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Background Size</label>
+                <select class="form-select" id="pageBgSize">
+                    <option value="cover" ${(pageStyles.backgroundSize || 'cover') === 'cover' ? 'selected' : ''}>Cover</option>
+                    <option value="contain" ${pageStyles.backgroundSize === 'contain' ? 'selected' : ''}>Contain</option>
+                    <option value="auto" ${pageStyles.backgroundSize === 'auto' ? 'selected' : ''}>Auto</option>
+                </select>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Background Position</label>
+            <select class="form-select" id="pageBgPosition">
+                <option value="center" ${(pageStyles.backgroundPosition || 'center') === 'center' ? 'selected' : ''}>Center</option>
+                <option value="top" ${pageStyles.backgroundPosition === 'top' ? 'selected' : ''}>Top</option>
+                <option value="bottom" ${pageStyles.backgroundPosition === 'bottom' ? 'selected' : ''}>Bottom</option>
+                <option value="left" ${pageStyles.backgroundPosition === 'left' ? 'selected' : ''}>Left</option>
+                <option value="right" ${pageStyles.backgroundPosition === 'right' ? 'selected' : ''}>Right</option>
+            </select>
+        </div>
+
+        <h6 class="mt-3 mb-2">Spacing</h6>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Padding</label>
+                <input type="text" class="form-control" id="pagePadding" value="${pageStyles.padding || ''}" placeholder="e.g. 2rem or 10px 20px">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Margin</label>
+                <input type="text" class="form-control" id="pageMargin" value="${pageStyles.margin || ''}" placeholder="e.g. 0 auto or 10px 20px">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Custom CSS</label>
+            <textarea class="form-control" id="pageCustomCss" rows="3" placeholder="Additional CSS properties">${pageStyles.custom || ''}</textarea>
+            <small class="text-muted">Enter custom CSS properties like: font-family: Arial; max-width: 1200px;</small>
+        </div>
+    `;
+
+    // Override save button to save page styles
+    const saveBtn = document.querySelector('#widgetModal .btn-primary');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    newSaveBtn.onclick = savePageStylesEdit;
+
+    widgetModal.show();
+}
+
+function savePageStylesEdit() {
+    // Colors
+    const pageBgTransparent = document.getElementById('pageBgTransparent').checked;
+    pageStyles.backgroundColor = pageBgTransparent ? 'transparent' : document.getElementById('pageBgColor').value;
+    pageStyles.color = document.getElementById('pageTextColor').value;
+
+    // Text styling
+    pageStyles.textDecoration = document.getElementById('pageTextDecoration').value;
+    pageStyles.fontWeight = document.getElementById('pageFontWeight').value;
+    pageStyles.fontStyle = document.getElementById('pageFontStyle').value;
+
+    // Background media
+    pageStyles.backgroundImage = document.getElementById('pageBgImage').value;
+    pageStyles.backgroundSize = document.getElementById('pageBgSize').value;
+    pageStyles.backgroundPosition = document.getElementById('pageBgPosition').value;
+
+    // Spacing
+    pageStyles.padding = document.getElementById('pagePadding').value;
+    pageStyles.margin = document.getElementById('pageMargin').value;
+
+    // Custom CSS
+    pageStyles.custom = document.getElementById('pageCustomCss').value;
+
+    console.log('Saving page styles:', pageStyles);
+    applyPageStyles();
+
+    // Auto-save page styles to database
+    fetch(`/page/${pageId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            page_styles: pageStyles
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Page styles saved successfully!', pageStyles);
+            alert('Page styles saved!');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving page styles:', error);
+        alert('Error saving page styles: ' + error);
+    });
+
+    widgetModal.hide();
+
+    // Restore normal save behavior
+    const saveBtn = document.querySelector('#widgetModal .btn-primary');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    newSaveBtn.onclick = saveWidgetEdit;
+}
+
+function editPageMenus() {
+    // Build menu options for each position
+    const topMenus = siteMenus.filter(m => m.position === 'top');
+    const leftMenus = siteMenus.filter(m => m.position === 'left');
+    const rightMenus = siteMenus.filter(m => m.position === 'right');
+
+    const buildMenuOptions = (menus, selectedId) => {
+        let options = '<option value="">Use site default (or inherit from parent)</option>';
+        options += `<option value="0" ${selectedId === 0 ? 'selected' : ''}>No menu (hide)</option>`;
+        menus.forEach(menu => {
+            const selected = selectedId === menu.id ? 'selected' : '';
+            const activeLabel = menu.is_active ? ' (Site Active)' : '';
+            options += `<option value="${menu.id}" ${selected}>${menu.name}${activeLabel}</option>`;
+        });
+        return options;
+    };
+
+    const buildFooterOptions = (footers, selectedId) => {
+        let options = '<option value="">Use site default (or inherit from parent)</option>';
+        options += `<option value="0" ${selectedId === 0 ? 'selected' : ''}>No footer (hide)</option>`;
+        footers.forEach(footer => {
+            const selected = selectedId === footer.id ? 'selected' : '';
+            const activeLabel = footer.is_active ? ' (Site Active)' : '';
+            options += `<option value="${footer.id}" ${selected}>${footer.name}${activeLabel}</option>`;
+        });
+        return options;
+    };
+
+    document.getElementById('widgetModalTitle').textContent = 'Page Menus & Footer';
+    document.getElementById('widgetModalBody').innerHTML = `
+        <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle"></i>
+            <strong>Menu Inheritance:</strong> If you select a menu here, all child pages will inherit it unless they have their own override.
+            <br><small><strong>Options:</strong> "Use site default" inherits from parent or uses site-wide active menu. "No menu (hide)" explicitly hides the menu for this page and children.</small>
+        </div>
+
+        <h6 class="mb-2">Navigation Menus</h6>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Top Menu</label>
+                <select class="form-select" id="pageTopMenu">
+                    ${buildMenuOptions(topMenus, pageMenuSettings.top_menu_id)}
+                </select>
+                ${topMenus.length === 0 ? '<small class="text-muted">No top menus created yet</small>' : ''}
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Left Menu</label>
+                <select class="form-select" id="pageLeftMenu">
+                    ${buildMenuOptions(leftMenus, pageMenuSettings.left_menu_id)}
+                </select>
+                ${leftMenus.length === 0 ? '<small class="text-muted">No left menus created yet</small>' : ''}
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Right Menu</label>
+                <select class="form-select" id="pageRightMenu">
+                    ${buildMenuOptions(rightMenus, pageMenuSettings.right_menu_id)}
+                </select>
+                ${rightMenus.length === 0 ? '<small class="text-muted">No right menus created yet</small>' : ''}
+            </div>
+        </div>
+
+        <h6 class="mt-3 mb-2">Footer</h6>
+        <div class="mb-3">
+            <label class="form-label">Page Footer</label>
+            <select class="form-select" id="pageFooter">
+                ${buildFooterOptions(siteFooters, pageMenuSettings.footer_id)}
+            </select>
+            ${siteFooters.length === 0 ? '<small class="text-muted">No footers created yet</small>' : ''}
+        </div>
+
+        <div class="alert alert-secondary mt-3">
+            <small>
+                <strong>Note:</strong> Create menus and footers in the <a href="/site/${siteId}" target="_blank">Site Dashboard</a>.
+            </small>
+        </div>
+    `;
+
+    // Override save button
+    const saveBtn = document.querySelector('#widgetModal .btn-primary');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    newSaveBtn.onclick = savePageMenusEdit;
+
+    widgetModal.show();
+}
+
+function savePageMenusEdit() {
+    // Get selected values (convert empty strings to null)
+    const topMenuId = document.getElementById('pageTopMenu').value;
+    const leftMenuId = document.getElementById('pageLeftMenu').value;
+    const rightMenuId = document.getElementById('pageRightMenu').value;
+    const footerId = document.getElementById('pageFooter').value;
+
+    pageMenuSettings.top_menu_id = topMenuId ? parseInt(topMenuId) : null;
+    pageMenuSettings.left_menu_id = leftMenuId ? parseInt(leftMenuId) : null;
+    pageMenuSettings.right_menu_id = rightMenuId ? parseInt(rightMenuId) : null;
+    pageMenuSettings.footer_id = footerId ? parseInt(footerId) : null;
+
+    // Save to database
+    fetch(`/page/${pageId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            top_menu_id: pageMenuSettings.top_menu_id,
+            left_menu_id: pageMenuSettings.left_menu_id,
+            right_menu_id: pageMenuSettings.right_menu_id,
+            footer_id: pageMenuSettings.footer_id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Page menus saved! Preview to see changes.');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving page menus:', error);
+        alert('Error saving page menus: ' + error);
+    });
+
+    widgetModal.hide();
+
+    // Restore normal save behavior
+    const saveBtn = document.querySelector('#widgetModal .btn-primary');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    newSaveBtn.onclick = saveWidgetEdit;
+}
+
+// ===== MODAL WIDGET CHILD MANAGEMENT =====
+
+function findModalWidget(modalWidgetId) {
+    // Search in top-level widgets
+    for (let widget of widgets) {
+        if (widget.id === modalWidgetId && widget.type === 'modal') {
+            return widget;
+        }
+        // Search in row columns
+        if (widget.type === 'row' && widget.children) {
+            for (let col of widget.children) {
+                if (col.children) {
+                    for (let child of col.children) {
+                        if (child.id === modalWidgetId && child.type === 'modal') {
+                            return child;
+                        }
+                    }
+                }
+            }
+        }
+        // Search in standalone columns
+        if (widget.type === 'column' && widget.children) {
+            for (let child of widget.children) {
+                if (child.id === modalWidgetId && child.type === 'modal') {
+                    return child;
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function editModalChild(modalWidgetId, childIndex) {
+    const modalWidget = findModalWidget(modalWidgetId);
+    if (!modalWidget || !modalWidget.children || !modalWidget.children[childIndex]) {
+        console.error('Modal child not found');
+        return;
+    }
+
+    const childWidget = modalWidget.children[childIndex];
+
+    // Set currentEditingWidget for the edit modal
+    currentEditingWidget = {
+        widget: childWidget,
+        isModalChild: true,
+        modalWidgetId: modalWidgetId,
+        childIndex: childIndex
+    };
+
+    // Show edit form with the child widget's content
+    showWidgetEditForm(childWidget);
+}
+
+function deleteModalChild(modalWidgetId, childIndex) {
+    if (!confirm('Delete this widget from the modal?')) return;
+
+    const modalWidget = findModalWidget(modalWidgetId);
+    if (!modalWidget || !modalWidget.children) {
+        console.error('Modal widget not found');
+        return;
+    }
+
+    modalWidget.children.splice(childIndex, 1);
+    renderWidgets();
+    setupAllDropZones();
+}
+
+function addWidgetToModal(modalWidgetId, widgetType, extraData = null) {
+    const modalWidget = findModalWidget(modalWidgetId);
+    if (!modalWidget) {
+        console.error('Modal widget not found:', modalWidgetId);
+        return;
+    }
+
+    if (!modalWidget.children) {
+        modalWidget.children = [];
+    }
+
+    const newWidget = createWidget(widgetType, extraData);
+    modalWidget.children.push(newWidget);
+    renderWidgets();
+    setupAllDropZones();
+}
+
+function setupModalDropZones() {
+    document.querySelectorAll('.modal-drop-zone').forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.add('drag-over');
+            zone.style.borderColor = '#0d6efd';
+            zone.style.backgroundColor = '#e7f1ff';
+        });
+
+        zone.addEventListener('dragleave', (e) => {
+            zone.classList.remove('drag-over');
+            zone.style.borderColor = '#dee2e6';
+            zone.style.backgroundColor = '#f8f9fa';
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.remove('drag-over');
+            zone.style.borderColor = '#dee2e6';
+            zone.style.backgroundColor = '#f8f9fa';
+
+            const modalContainer = zone.closest('.modal-children-container');
+            if (!modalContainer) return;
+
+            const modalWidgetId = modalContainer.dataset.modalId;
+            const widgetType = e.dataTransfer.getData('widgetType');
+
+            if (widgetType) {
+                // For Caspio widgets, also pass the additional data
+                if (widgetType === 'caspio') {
+                    const caspioData = {
+                        datapageName: e.dataTransfer.getData('caspioDatapageName'),
+                        datapageKey: e.dataTransfer.getData('caspioDatapageKey'),
+                        appName: e.dataTransfer.getData('caspioAppName'),
+                        deployUrl: e.dataTransfer.getData('caspioDeployUrl')
+                    };
+                    addWidgetToModal(modalWidgetId, widgetType, caspioData);
+                } else {
+                    addWidgetToModal(modalWidgetId, widgetType);
+                }
+            }
+        });
+    });
+}
+
+// ===== END MODAL WIDGET CHILD MANAGEMENT =====
+
+function savePage() {
+    const title = document.getElementById('pageTitle').value;
+    const slug = document.getElementById('pageSlug').value;
+
+    fetch(`/page/${pageId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            title: title,
+            slug: slug,
+            content: widgets,
+            page_styles: pageStyles,
+            top_menu_id: pageMenuSettings.top_menu_id,
+            left_menu_id: pageMenuSettings.left_menu_id,
+            right_menu_id: pageMenuSettings.right_menu_id,
+            footer_id: pageMenuSettings.footer_id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Page saved successfully!');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to save page');
+    });
+}
+
+function togglePublish() {
+    const newState = !isPublished;
+    const confirmMessage = newState
+        ? 'Publish this page? It will be publicly visible at /site/' + siteId + '/{{ page.slug }}'
+        : 'Unpublish this page? It will no longer be publicly accessible.';
+
+    if (!confirm(confirmMessage)) return;
+
+    fetch(`/page/${pageId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: newState })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            isPublished = data.published;
+            updatePublishButton();
+            alert(isPublished ? 'Page published successfully!' : 'Page unpublished successfully!');
+            // Refresh the page to show/hide the View Live button
+            setTimeout(() => window.location.reload(), 1000);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update publish status');
+    });
+}
+
+function updatePublishButton() {
+    const btn = document.getElementById('publishBtn');
+    const icon = document.getElementById('publishIcon');
+    const text = document.getElementById('publishText');
+
+    if (isPublished) {
+        btn.className = 'btn btn-sm btn-warning';
+        icon.className = 'bi bi-eye-slash';
+        text.textContent = 'Unpublish';
+    } else {
+        btn.className = 'btn btn-sm btn-success';
+        icon.className = 'bi bi-rocket-takeoff';
+        text.textContent = 'Publish';
+    }
+}
+
+// Helper functions for accordion items
+function addAccordionItem() {
+    const container = document.getElementById('accordionItemsContainer');
+    const newIndex = container.children.length;
+    const newItem = document.createElement('div');
+    newItem.className = 'card mb-2';
+    newItem.setAttribute('data-item-index', newIndex);
+    newItem.innerHTML = `
+        <div class="card-body">
+            <div class="mb-2">
+                <input type="text" class="form-control accordion-item-title" placeholder="Title" value="New Item">
+            </div>
+            <div class="mb-2">
+                <textarea class="form-control accordion-item-content" placeholder="Content" rows="2">Content here...</textarea>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input accordion-item-expanded">
+                <label class="form-check-label">Expanded by default</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeAccordionItem(${newIndex})">Remove</button>
+        </div>
+    `;
+    container.appendChild(newItem);
+}
+
+function removeAccordionItem(index) {
+    const container = document.getElementById('accordionItemsContainer');
+    const items = container.querySelectorAll('.card');
+    if (items.length > 1) {
+        items[index].remove();
+    } else {
+        alert('Accordion must have at least one item');
+    }
+}
+
+// Helper functions for breadcrumb items
+function addBreadcrumbItem() {
+    const container = document.getElementById('breadcrumbItemsContainer');
+    const newIndex = container.children.length;
+    const newItem = document.createElement('div');
+    newItem.className = 'card mb-2';
+    newItem.setAttribute('data-item-index', newIndex);
+    newItem.innerHTML = `
+        <div class="card-body">
+            <div class="mb-2">
+                <input type="text" class="form-control breadcrumb-item-text" placeholder="Text" value="New Item">
+            </div>
+            <div class="mb-2">
+                <input type="text" class="form-control breadcrumb-item-url" placeholder="URL" value="#">
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input breadcrumb-item-active">
+                <label class="form-check-label">Active (current page)</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeBreadcrumbItem(${newIndex})">Remove</button>
+        </div>
+    `;
+    container.appendChild(newItem);
+}
+
+function removeBreadcrumbItem(index) {
+    const container = document.getElementById('breadcrumbItemsContainer');
+    const items = container.querySelectorAll('.card');
+    if (items.length > 1) {
+        items[index].remove();
+    } else {
+        alert('Breadcrumb must have at least one item');
+    }
+}
+
+// Helper functions for tabs
+function addTab() {
+    const container = document.getElementById('tabsContainer');
+    const newIndex = container.children.length;
+    const newTab = document.createElement('div');
+    newTab.className = 'card mb-2';
+    newTab.setAttribute('data-tab-index', newIndex);
+    newTab.innerHTML = `
+        <div class="card-body">
+            <div class="mb-2">
+                <input type="text" class="form-control tab-title" placeholder="Tab Title" value="New Tab">
+            </div>
+            <div class="mb-2">
+                <textarea class="form-control tab-content" placeholder="Tab Content" rows="2">Tab content here...</textarea>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input tab-active">
+                <label class="form-check-label">Active tab</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeTab(${newIndex})">Remove</button>
+        </div>
+    `;
+    container.appendChild(newTab);
+}
+
+function removeTab(index) {
+    const container = document.getElementById('tabsContainer');
+    const tabs = container.querySelectorAll('.card');
+    if (tabs.length > 1) {
+        tabs[index].remove();
+    } else {
+        alert('Tabs widget must have at least one tab');
+    }
+}
+
+// Image upload functions
+function showUploadModal() {
+    document.getElementById('imageFile').value = '';
+    document.getElementById('uploadPreview').style.display = 'none';
+    document.getElementById('uploadError').style.display = 'none';
+    uploadModal.show();
+}
+
+function uploadImage() {
+    const fileInput = document.getElementById('imageFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showUploadError('Please select a file');
+        return;
+    }
+
+    const uploadBtn = document.getElementById('uploadBtn');
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> Upload';
+
+        if (data.success) {
+            const fullUrl = window.location.origin + data.url;
+            document.getElementById('previewImage').src = data.url;
+            document.getElementById('uploadedUrl').value = fullUrl;
+            document.getElementById('uploadPreview').style.display = 'block';
+            document.getElementById('uploadError').style.display = 'none';
+        } else {
+            showUploadError(data.error || 'Upload failed');
+        }
+    })
+    .catch(error => {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> Upload';
+        showUploadError('Upload failed: ' + error.message);
+    });
+}
+
+function showUploadError(message) {
+    const errorDiv = document.getElementById('uploadError');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+function copyToClipboard() {
+    const urlInput = document.getElementById('uploadedUrl');
+    urlInput.select();
+    document.execCommand('copy');
+
+    // Show visual feedback
+    const copyBtn = event.target.closest('button');
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+    setTimeout(() => {
+        copyBtn.innerHTML = originalHTML;
+    }, 2000);
+}
+
+// Image Gallery Functions
+function openImageGallery(inputId) {
+    currentImageInputId = inputId;
+    loadGalleryImages();
+    imageGalleryModal.show();
+}
+
+function loadGalleryImages() {
+    const loading = document.getElementById('galleryLoading');
+    const grid = document.getElementById('galleryGrid');
+    const empty = document.getElementById('galleryEmpty');
+
+    loading.style.display = 'block';
+    grid.style.display = 'none';
+    empty.style.display = 'none';
+
+    fetch('/images/list')
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+
+            if (data.success && data.images.length > 0) {
+                grid.innerHTML = data.images.map(img => `
+                    <div class="col-md-3 col-sm-4 col-6">
+                        <div class="card h-100" style="cursor: pointer;" onclick="selectImage('${img.url}')">
+                            <img src="${img.url}" class="card-img-top" alt="${img.filename}" style="height: 200px; object-fit: cover;">
+                            <div class="card-body p-2">
+                                <small class="text-muted text-truncate d-block">${img.filename}</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                grid.style.display = 'flex';
+            } else {
+                empty.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            empty.innerHTML = '<p class="text-danger">Error loading images</p>';
+            empty.style.display = 'block';
+            console.error('Error loading gallery images:', error);
+        });
+}
+
+function selectImage(url) {
+    if (currentImageInputId) {
+        const input = document.getElementById(currentImageInputId);
+        if (input) {
+            input.value = url;
+            // Trigger change event to update any preview
+            input.dispatchEvent(new Event('input'));
+        }
+    }
+    imageGalleryModal.hide();
+}
+
+function uploadToGallery() {
+    const fileInput = document.getElementById('galleryImageFile');
+    const errorDiv = document.getElementById('galleryUploadError');
+    const successDiv = document.getElementById('galleryUploadSuccess');
+
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+
+    if (!fileInput.files || !fileInput.files[0]) {
+        errorDiv.textContent = 'Please select an image file';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            successDiv.textContent = 'Image uploaded successfully!';
+            successDiv.style.display = 'block';
+            fileInput.value = '';
+            document.getElementById('galleryPreviewImage').style.display = 'none';
+
+            // Select the uploaded image
+            selectImage(data.url);
+
+            // Reload gallery images
+            setTimeout(() => {
+                loadGalleryImages();
+                // Switch to browse tab
+                document.getElementById('browse-tab').click();
+            }, 500);
+        } else {
+            errorDiv.textContent = data.error || 'Upload failed';
+            errorDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        errorDiv.textContent = 'Upload failed: ' + error.message;
+        errorDiv.style.display = 'block';
+        console.error('Upload error:', error);
+    });
+}
+
+// Preview image on file selection in gallery
+document.addEventListener('DOMContentLoaded', function() {
+    const galleryFileInput = document.getElementById('galleryImageFile');
+    if (galleryFileInput) {
+        galleryFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('galleryPreviewImage');
+                    preview.src = e.target.result;
+                    document.getElementById('galleryUploadPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+
+// Page selector function for link widgets
+function selectPageForLink(pageId) {
+    if (!pageId) return;
+
+    const selectedPage = sitePages.find(p => p.id == pageId);
+    if (selectedPage) {
+        const urlInput = document.getElementById('widgetUrl');
+        if (urlInput) {
+            // Use full_path for nested pages
+            urlInput.value = `/site/${siteId}/${selectedPage.full_path || selectedPage.slug}`;
+        }
+    }
+}
+
+// ==================== Caspio DataPages Integration ====================
+
+let caspioDatapages = null;
+
+function loadCaspioDatapages() {
+    fetch('/api/caspio/datapages')
+        .then(response => response.json())
+        .then(data => {
+            caspioDatapages = data;
+            renderCaspioSidebar(data);
+        })
+        .catch(error => {
+            console.error('Failed to load Caspio datapages:', error);
+            document.getElementById('caspioSidebarContent').innerHTML = `
+                <div class="caspio-not-configured">
+                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                    <p class="mt-2">Failed to load DataPages</p>
+                    <small class="text-muted">${error.message}</small>
+                </div>
+            `;
+        });
+}
+
+function renderCaspioSidebar(data) {
+    const container = document.getElementById('caspioSidebarContent');
+
+    if (!data.configured) {
+        container.innerHTML = `
+            <div class="caspio-not-configured">
+                <i class="bi bi-gear text-muted" style="font-size: 2rem;"></i>
+                <p class="mt-2 mb-1"><strong>Caspio Not Configured</strong></p>
+                <small class="text-muted">
+                    Add your Caspio credentials to the .env file:<br>
+                    <code>CASPIO_ACCOUNT_ID</code><br>
+                    <code>CASPIO_CLIENT_ID</code><br>
+                    <code>CASPIO_CLIENT_SECRET</code>
+                </small>
+            </div>
+        `;
+        return;
+    }
+
+    if (!data.apps || data.apps.length === 0) {
+        container.innerHTML = `
+            <div class="caspio-not-configured">
+                <i class="bi bi-database-x text-muted" style="font-size: 2rem;"></i>
+                <p class="mt-2">No applications found</p>
+                <small class="text-muted">Create DataPages in your Caspio account</small>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    data.apps.forEach((app, appIdx) => {
+        html += `
+            <div class="caspio-app-group">
+                <div class="caspio-app-header" onclick="toggleCaspioApp(${appIdx})">
+                    <span><i class="bi bi-folder2 me-2"></i>${app.name}</span>
+                    <i class="bi bi-chevron-down" id="caspioAppIcon${appIdx}"></i>
+                </div>
+                <div class="caspio-app-content" id="caspioApp${appIdx}" style="display: none;">
+        `;
+
+        // Datapages not in folders
+        if (app.datapages && app.datapages.length > 0) {
+            app.datapages.forEach(dp => {
+                html += renderCaspioDatapageItem(dp);
+            });
+        }
+
+        // Folders
+        if (app.folders && app.folders.length > 0) {
+            app.folders.forEach((folder, folderIdx) => {
+                html += `
+                    <div class="caspio-folder-group">
+                        <div class="caspio-folder-header" onclick="toggleCaspioFolder(${appIdx}, ${folderIdx})">
+                            <i class="bi bi-folder me-1"></i>
+                            <span>${folder.name}</span>
+                            <i class="bi bi-chevron-right ms-auto" id="caspioFolderIcon${appIdx}_${folderIdx}"></i>
+                        </div>
+                        <div class="caspio-folder-content" id="caspioFolder${appIdx}_${folderIdx}" style="display: none;">
+                `;
+                folder.datapages.forEach(dp => {
+                    html += renderCaspioDatapageItem(dp);
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    setupCaspioDragHandlers();
+}
+
+function renderCaspioDatapageItem(dp) {
+    return `
+        <div class="caspio-datapage-item"
+             draggable="true"
+             data-widget-type="caspio"
+             data-datapage-name="${dp.name}"
+             data-datapage-key="${dp.key}"
+             data-app-name="${dp.appName}"
+             data-deploy-url="${dp.deployUrl}">
+            <i class="bi bi-file-earmark-code me-1"></i>
+            ${dp.name}
+        </div>
+    `;
+}
+
+function toggleCaspioApp(appIdx) {
+    const content = document.getElementById(`caspioApp${appIdx}`);
+    const icon = document.getElementById(`caspioAppIcon${appIdx}`);
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+    } else {
+        content.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+    }
+}
+
+function toggleCaspioFolder(appIdx, folderIdx) {
+    const content = document.getElementById(`caspioFolder${appIdx}_${folderIdx}`);
+    const icon = document.getElementById(`caspioFolderIcon${appIdx}_${folderIdx}`);
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.className = 'bi bi-chevron-down ms-auto';
+    } else {
+        content.style.display = 'none';
+        icon.className = 'bi bi-chevron-right ms-auto';
+    }
+}
+
+function setupCaspioDragHandlers() {
+    document.querySelectorAll('.caspio-datapage-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('widgetType', 'caspio');
+            e.dataTransfer.setData('caspioDatapageName', this.dataset.datapageName);
+            e.dataTransfer.setData('caspioDatapageKey', this.dataset.datapageKey);
+            e.dataTransfer.setData('caspioAppName', this.dataset.appName);
+            e.dataTransfer.setData('caspioDeployUrl', this.dataset.deployUrl);
+            e.dataTransfer.effectAllowed = 'copy';
+            this.classList.add('dragging');
+        });
+
+        item.addEventListener('dragend', function(e) {
+            this.classList.remove('dragging');
+        });
+    });
+}
+
+function refreshCaspioDatapages() {
+    document.getElementById('caspioSidebarContent').innerHTML = `
+        <div class="caspio-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <p class="mt-2 mb-0">Loading DataPages...</p>
+        </div>
+    `;
+    document.getElementById('caspioSearchInput').value = '';
+    loadCaspioDatapages();
+}
+
+function filterCaspioDatapages(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    const container = document.getElementById('caspioSidebarContent');
+
+    // Get all datapage items
+    const datapageItems = container.querySelectorAll('.caspio-datapage-item');
+    const appGroups = container.querySelectorAll('.caspio-app-group');
+    const folderGroups = container.querySelectorAll('.caspio-folder-group');
+
+    if (!term) {
+        // Show all items and collapse groups
+        datapageItems.forEach(item => item.style.display = '');
+        appGroups.forEach(group => group.style.display = '');
+        folderGroups.forEach(folder => folder.style.display = '');
+        return;
+    }
+
+    let matchCount = 0;
+
+    // Filter datapage items
+    datapageItems.forEach(item => {
+        const name = (item.dataset.datapageName || '').toLowerCase();
+        const appName = (item.dataset.appName || '').toLowerCase();
+        if (name.includes(term) || appName.includes(term)) {
+            item.style.display = '';
+            matchCount++;
+
+            // Expand parent containers
+            let parent = item.parentElement;
+            while (parent) {
+                if (parent.classList.contains('caspio-folder-content') ||
+                    parent.classList.contains('caspio-app-content')) {
+                    parent.style.display = 'block';
+                }
+                parent = parent.parentElement;
+            }
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // Hide folders with no visible datapages
+    folderGroups.forEach(folder => {
+        const visibleDatapages = folder.querySelectorAll('.caspio-datapage-item:not([style*="display: none"])');
+        if (visibleDatapages.length === 0) {
+            folder.style.display = 'none';
+        } else {
+            folder.style.display = '';
+            // Expand the folder content
+            const folderContent = folder.querySelector('.caspio-folder-content');
+            if (folderContent) folderContent.style.display = 'block';
+        }
+    });
+
+    // Hide apps with no visible datapages
+    appGroups.forEach(appGroup => {
+        const visibleDatapages = appGroup.querySelectorAll('.caspio-datapage-item:not([style*="display: none"])');
+        if (visibleDatapages.length === 0) {
+            appGroup.style.display = 'none';
+        } else {
+            appGroup.style.display = '';
+            // Expand the app content
+            const appContent = appGroup.querySelector('.caspio-app-content');
+            if (appContent) appContent.style.display = 'block';
+        }
+    });
+}
+
+function clearCaspioSearch() {
+    document.getElementById('caspioSearchInput').value = '';
+    filterCaspioDatapages('');
+}
+
+// Create a caspio widget with pre-filled data
+function createCaspioWidget(datapageName, datapageKey, appName, deployUrl) {
+    return {
+        id: Date.now() + '-' + Math.floor(Math.random() * 100000),
+        type: 'caspio',
+        datapageName: datapageName,
+        datapageKey: datapageKey,
+        appName: appName,
+        deployUrl: deployUrl
+    };
+}
+
+// Load Caspio datapages on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadCaspioDatapages();
+});
+</script>
+{% endblock %}

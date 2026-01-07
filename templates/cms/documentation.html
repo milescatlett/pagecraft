@@ -1,0 +1,697 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation - CMS Builder{% endblock %}
+
+{% block body %}
+<div class="cms-container">
+    <nav class="cms-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-compass"></i> CMS Builder</h4>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="/"><i class="bi bi-grid"></i> Dashboard</a></li>
+            {% if current_user.is_admin %}
+            <li><a href="/users"><i class="bi bi-people"></i> Users</a></li>
+            {% endif %}
+            <li class="active"><a href="/docs"><i class="bi bi-book"></i> Documentation</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ current_user.username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm w-100">
+                <i class="bi bi-box-arrow-left"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="cms-main">
+        <div class="cms-header">
+            <div>
+                <h1><i class="bi bi-book"></i> Documentation</h1>
+                <p class="text-muted">Setup guides and code examples</p>
+            </div>
+        </div>
+
+        <div class="cms-content">
+            <!-- Quick Navigation -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Navigation</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="#domain-setup" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-globe"></i> Domain Setup
+                        </a>
+                        <a href="#modal-widget" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-window-stack"></i> Modal Widget
+                        </a>
+                        <a href="#open-modal-function" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-code-slash"></i> openSiteModal() Function
+                        </a>
+                        <a href="#caspio-integration" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-database"></i> Caspio Integration
+                        </a>
+                        <a href="#menu-overrides" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-menu-button-wide"></i> Menu Overrides
+                        </a>
+                        <a href="#server-deployment" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-server"></i> Server Deployment
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Domain Setup Section -->
+            <div class="card mb-4" id="domain-setup">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-globe"></i> Domain Setup</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Step 1: Configure Your Domain in CMS</h6>
+                    <ol>
+                        <li>Go to your site's dashboard</li>
+                        <li>Click "Configure Domain" in the Domain Configuration section</li>
+                        <li>Enter your domain without http:// or https:// (e.g., <code>example.com</code>)</li>
+                        <li>Click "Save Domain"</li>
+                    </ol>
+
+                    <h6 class="mt-4">Step 2: DNS Configuration</h6>
+                    <p>Point your domain to your server using one of these methods:</p>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Record Type</th>
+                                    <th>Host/Name</th>
+                                    <th>Value/Points To</th>
+                                    <th>TTL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>A Record</strong></td>
+                                    <td><code>@</code> or <code>yourdomain.com</code></td>
+                                    <td><code>YOUR_SERVER_IP</code></td>
+                                    <td>3600</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CNAME Record</strong></td>
+                                    <td><code>www</code></td>
+                                    <td><code>yourdomain.com</code></td>
+                                    <td>3600</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-exclamation-triangle"></i> Important Notes</h6>
+                        <ul class="mb-0">
+                            <li>DNS changes can take up to 48 hours to propagate</li>
+                            <li>Ensure your server/hosting is configured to accept the domain</li>
+                            <li>For HTTPS, you'll need to configure SSL certificates (e.g., Let's Encrypt)</li>
+                        </ul>
+                    </div>
+
+                    <h6 class="mt-4">Step 3: Server Configuration (Nginx Example)</h6>
+                    <pre><code class="language-nginx">server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Modal Widget Section -->
+            <div class="card mb-4" id="modal-widget">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-window-stack"></i> Modal Widget</h5>
+                </div>
+                <div class="card-body">
+                    <p>The Modal widget allows you to create popup dialogs that can contain any other widgets, including Caspio DataPages.</p>
+
+                    <h6>How to Use</h6>
+                    <ol>
+                        <li>Drag the <strong>Modal</strong> widget from the Components section to your page</li>
+                        <li>Click the widget to edit its settings:
+                            <ul>
+                                <li><strong>Button Text:</strong> Text displayed on the trigger button</li>
+                                <li><strong>Button Style:</strong> Bootstrap button style (primary, secondary, etc.)</li>
+                                <li><strong>Modal ID:</strong> Unique identifier for programmatic access</li>
+                                <li><strong>Modal Size:</strong> Default, Small, Large, Extra Large, or Fullscreen</li>
+                                <li><strong>Modal Title:</strong> Header text shown in the modal</li>
+                            </ul>
+                        </li>
+                        <li>Drag other widgets into the modal's content area (shown in the preview)</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb"></i> <strong>Tip:</strong> You can drag Caspio DataPages directly into modals to create detail views, edit forms, or any interactive content.
+                    </div>
+                </div>
+            </div>
+
+            <!-- openSiteModal Function Section -->
+            <div class="card mb-4" id="open-modal-function">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-code-slash"></i> openSiteModal() Function</h5>
+                </div>
+                <div class="card-body">
+                    <p>The <code>openSiteModal()</code> function is available globally on all pages and allows you to programmatically open modals, including from within Caspio DataPages.</p>
+
+                    <h6>Basic Usage</h6>
+                    <pre><code class="language-javascript">// Open a modal by its ID
+openSiteModal('modal-1234567890');
+
+// Open with parameters (passed to Caspio DataPages inside the modal)
+openSiteModal('modal-1234567890', {
+    RecordID: 123,
+    Status: 'Active',
+    UserID: 456
+});</code></pre>
+
+                    <h6 class="mt-4">Using in Caspio DataPages (HTML Blocks)</h6>
+                    <p>You can trigger modals from Caspio DataPages using HTML buttons with data attributes:</p>
+
+                    <pre><code class="language-html">&lt;!-- Simple button to open a modal --&gt;
+&lt;button type="button"
+        data-open-modal="modal-1234567890"
+        class="btn btn-primary"&gt;
+    View Details
+&lt;/button&gt;
+
+&lt;!-- Button with parameters using data attributes --&gt;
+&lt;button type="button"
+        data-open-modal="modal-1234567890"
+        data-param-RecordID="[@field:RecordID]"
+        data-param-Status="[@field:Status]"
+        class="btn btn-info"&gt;
+    Edit Record
+&lt;/button&gt;
+
+&lt;!-- Button with JSON parameters --&gt;
+&lt;button type="button"
+        data-open-modal="modal-1234567890"
+        data-params='{"RecordID": "[@field:RecordID]", "Mode": "edit"}'
+        class="btn btn-warning"&gt;
+    Open Editor
+&lt;/button&gt;</code></pre>
+
+                    <h6 class="mt-4">Using JavaScript in Caspio</h6>
+                    <p>You can also call the function directly from Caspio's JavaScript:</p>
+                    <pre><code class="language-javascript">// In a Caspio HTML Block or Footer
+&lt;script&gt;
+function openRecordDetails(recordId) {
+    openSiteModal('details-modal', {
+        RecordID: recordId,
+        ViewMode: 'readonly'
+    });
+}
+&lt;/script&gt;
+
+&lt;button onclick="openRecordDetails('[@field:ID]')"&gt;
+    View Details
+&lt;/button&gt;</code></pre>
+
+                    <h6 class="mt-4">How Parameters Work</h6>
+                    <div class="alert alert-secondary">
+                        <p class="mb-2">When you pass parameters to <code>openSiteModal()</code>:</p>
+                        <ol class="mb-0">
+                            <li>The function finds all Caspio DataPage embeds inside the modal</li>
+                            <li>It appends the parameters as query string values to the embed URLs</li>
+                            <li>The DataPage reloads with the new parameters</li>
+                            <li>Your Caspio DataPage receives them as external parameters</li>
+                        </ol>
+                    </div>
+
+                    <h6 class="mt-4">Complete Example: Master-Detail Pattern</h6>
+                    <pre><code class="language-html">&lt;!-- In your Caspio Results Page (list view) --&gt;
+&lt;a href="#"
+   data-open-modal="record-detail-modal"
+   data-param-RecordID="[@field:ID]"
+   class="btn btn-sm btn-outline-primary"&gt;
+    &lt;i class="bi bi-eye"&gt;&lt;/i&gt; View
+&lt;/a&gt;
+
+&lt;!-- The modal widget on your page contains a Caspio Details DataPage --&gt;
+&lt;!-- that receives RecordID as an external parameter --&gt;</code></pre>
+                </div>
+            </div>
+
+            <!-- Caspio Integration Section -->
+            <div class="card mb-4" id="caspio-integration">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-database"></i> Caspio Integration</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Setting Up Caspio API Credentials</h6>
+                    <p>To enable the Caspio DataPage browser in the page builder, configure your API credentials:</p>
+
+                    <ol>
+                        <li>Log into your Caspio account</li>
+                        <li>Go to <strong>Account</strong> &gt; <strong>Access</strong> &gt; <strong>Web Services API</strong></li>
+                        <li>Create a new API profile or use an existing one</li>
+                        <li>Note your <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                        <li>Find your <strong>Account ID</strong> (the subdomain in your Caspio URL, e.g., <code>c1abc123</code>)</li>
+                    </ol>
+
+                    <h6 class="mt-4">Environment Variables</h6>
+                    <p>Add these to your <code>.env</code> file:</p>
+                    <pre><code class="language-bash">CASPIO_ACCOUNT_ID=c1abc123
+CASPIO_CLIENT_ID=your_client_id_here
+CASPIO_CLIENT_SECRET=your_client_secret_here</code></pre>
+
+                    <h6 class="mt-4">Using DataPages in the Builder</h6>
+                    <ol>
+                        <li>Open the page builder</li>
+                        <li>Click the <strong>Caspio</strong> tab in the right sidebar</li>
+                        <li>Browse your applications and DataPages</li>
+                        <li>Drag a DataPage onto your page or into a modal</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Note:</strong> The Caspio sidebar only appears when API credentials are configured.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Overrides Section -->
+            <div class="card mb-4" id="menu-overrides">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-menu-button-wide"></i> Menu Overrides</h5>
+                </div>
+                <div class="card-body">
+                    <h6>How Menu Inheritance Works</h6>
+                    <p>Menus follow a hierarchical inheritance pattern:</p>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Priority</th>
+                                    <th>Source</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1 (Highest)</td>
+                                    <td>Page-specific setting</td>
+                                    <td>Menu set directly on the page</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Parent page inheritance</td>
+                                    <td>Inherited from parent page's setting</td>
+                                </tr>
+                                <tr>
+                                    <td>3 (Lowest)</td>
+                                    <td>Site default</td>
+                                    <td>The menu marked as "Active" for that position</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="mt-4">Setting a Global Menu</h6>
+                    <ol>
+                        <li>Go to your site dashboard</li>
+                        <li>Click on a menu to edit it</li>
+                        <li>Check the <strong>"Active (shown on site)"</strong> checkbox</li>
+                        <li>Save the menu</li>
+                    </ol>
+                    <p>This menu will now appear on all pages (for its position) unless overridden.</p>
+
+                    <h6 class="mt-4">Overriding on a Specific Page</h6>
+                    <ol>
+                        <li>Open the page in the page builder</li>
+                        <li>Click <strong>"Menus & Footer"</strong> in the toolbar</li>
+                        <li>Select a different menu or choose "No menu (hide)"</li>
+                        <li>Save the page</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>Child Page Inheritance:</strong> When you set a menu override on a page, all child pages will inherit that setting unless they have their own override.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Deployment Section -->
+            <div class="card mb-4" id="server-deployment">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-server"></i> Server Deployment</h5>
+                </div>
+                <div class="card-body">
+                    <p>This guide covers deploying the CMS to an Ubuntu server with Gunicorn, Nginx, and SSL.</p>
+
+                    <!-- Step 1: Server Prerequisites -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-1-circle"></i> Server Prerequisites</h5>
+                    <p>Update your Ubuntu server and install required packages:</p>
+                    <pre><code class="language-bash"># Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Python, pip, venv, and Nginx
+sudo apt install python3 python3-pip python3-venv nginx -y
+
+# Install Certbot for SSL (optional but recommended)
+sudo apt install certbot python3-certbot-nginx -y</code></pre>
+
+                    <!-- Step 2: Upload Application -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-2-circle"></i> Upload Application Files</h5>
+                    <p>Upload your application to the server. Common methods:</p>
+                    <pre><code class="language-bash"># Option A: Clone from Git
+cd /var/www
+sudo git clone https://your-repo-url.git cmsbuilder
+sudo chown -R $USER:$USER /var/www/cmsbuilder
+
+# Option B: SCP from local machine (run on your local machine)
+scp -r /path/to/your/project user@your-server:/var/www/cmsbuilder
+
+# Option C: SFTP using FileZilla or similar
+# Upload to /var/www/cmsbuilder</code></pre>
+
+                    <!-- Step 3: Python Environment -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-3-circle"></i> Set Up Python Environment</h5>
+                    <pre><code class="language-bash"># Navigate to application directory
+cd /var/www/cmsbuilder
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install Gunicorn
+pip install gunicorn</code></pre>
+
+                    <!-- Step 4: Environment Configuration -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-4-circle"></i> Configure Environment Variables</h5>
+                    <p>Create a <code>.env</code> file with your production settings:</p>
+                    <pre><code class="language-bash"># Create .env file
+nano /var/www/cmsbuilder/.env</code></pre>
+                    <p>Add the following content:</p>
+                    <pre><code class="language-bash"># Admin credentials (only used on first run if no users exist)
+ADMIN_USERNAME=youradmin
+ADMIN_PASSWORD=your_secure_password_here
+
+# REQUIRED: Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+SECRET_KEY=your_generated_secret_key_here
+
+# Optional: Caspio integration
+CASPIO_ACCOUNT_ID=c1abc123
+CASPIO_CLIENT_ID=your_client_id
+CASPIO_CLIENT_SECRET=your_client_secret</code></pre>
+
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> Generate a unique SECRET_KEY:
+                        <pre class="mb-0 mt-2"><code>python3 -c "import secrets; print(secrets.token_hex(32))"</code></pre>
+                    </div>
+
+                    <!-- Step 5: Test Application -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-5-circle"></i> Test the Application</h5>
+                    <pre><code class="language-bash"># Make sure you're in the app directory with venv activated
+cd /var/www/cmsbuilder
+source venv/bin/activate
+
+# Test with Gunicorn
+gunicorn -w 4 -b 127.0.0.1:5000 app:app
+
+# Press Ctrl+C to stop after confirming it works</code></pre>
+
+                    <!-- Step 6: Systemd Service -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-6-circle"></i> Create Systemd Service</h5>
+                    <p>Create a service file so the app starts automatically and runs in the background:</p>
+                    <pre><code class="language-bash"># Create the service file
+sudo nano /etc/systemd/system/cmsbuilder.service</code></pre>
+                    <p>Add the following content:</p>
+                    <pre><code class="language-ini">[Unit]
+Description=CMS Builder Gunicorn Service
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/cmsbuilder
+Environment="PATH=/var/www/cmsbuilder/venv/bin"
+EnvironmentFile=/var/www/cmsbuilder/.env
+ExecStart=/var/www/cmsbuilder/venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 app:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+                    <p>Set proper permissions and start the service:</p>
+                    <pre><code class="language-bash"># Set ownership to www-data
+sudo chown -R www-data:www-data /var/www/cmsbuilder
+
+# Reload systemd to recognize the new service
+sudo systemctl daemon-reload
+
+# Enable service to start on boot
+sudo systemctl enable cmsbuilder
+
+# Start the service
+sudo systemctl start cmsbuilder
+
+# Check status
+sudo systemctl status cmsbuilder</code></pre>
+
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-terminal"></i> Useful Service Commands</h6>
+                        <pre class="mb-0"><code class="language-bash"># View status
+sudo systemctl status cmsbuilder
+
+# Stop the service
+sudo systemctl stop cmsbuilder
+
+# Restart the service (after code changes)
+sudo systemctl restart cmsbuilder
+
+# View logs
+sudo journalctl -u cmsbuilder -f
+
+# View last 100 log lines
+sudo journalctl -u cmsbuilder -n 100</code></pre>
+                    </div>
+
+                    <!-- Step 7: Nginx Configuration -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-7-circle"></i> Configure Nginx</h5>
+                    <p>Create an Nginx site configuration:</p>
+                    <pre><code class="language-bash"># Create Nginx config
+sudo nano /etc/nginx/sites-available/cmsbuilder</code></pre>
+                    <p>Add the following content (replace <code>yourdomain.com</code> with your actual domain):</p>
+                    <pre><code class="language-nginx">server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Max upload size (matches Flask config)
+    client_max_body_size 16M;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support (if needed)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Serve static files directly (better performance)
+    location /static {
+        alias /var/www/cmsbuilder/static;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}</code></pre>
+
+                    <p>Enable the site and restart Nginx:</p>
+                    <pre><code class="language-bash"># Enable the site
+sudo ln -s /etc/nginx/sites-available/cmsbuilder /etc/nginx/sites-enabled/
+
+# Remove default site (optional)
+sudo rm /etc/nginx/sites-enabled/default
+
+# Test Nginx configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx</code></pre>
+
+                    <!-- Step 8: SSL Certificate -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-8-circle"></i> Set Up SSL with Let's Encrypt</h5>
+                    <p>Secure your site with a free SSL certificate:</p>
+                    <pre><code class="language-bash"># Obtain SSL certificate (replace with your domain)
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# Follow the prompts:
+# - Enter your email address
+# - Agree to terms of service
+# - Choose whether to redirect HTTP to HTTPS (recommended: Yes)
+
+# Test auto-renewal
+sudo certbot renew --dry-run</code></pre>
+
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> <strong>Certbot will automatically:</strong>
+                        <ul class="mb-0">
+                            <li>Obtain and install the SSL certificate</li>
+                            <li>Update your Nginx configuration</li>
+                            <li>Set up auto-renewal (certificates expire every 90 days)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 9: Firewall -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-9-circle"></i> Configure Firewall (UFW)</h5>
+                    <pre><code class="language-bash"># Allow SSH (important: don't lock yourself out!)
+sudo ufw allow ssh
+
+# Allow HTTP and HTTPS
+sudo ufw allow 'Nginx Full'
+
+# Enable firewall
+sudo ufw enable
+
+# Check status
+sudo ufw status</code></pre>
+
+                    <!-- Updating Application -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-arrow-repeat"></i> Updating the Application</h5>
+                    <p>When you need to deploy updates:</p>
+                    <pre><code class="language-bash"># Navigate to app directory
+cd /var/www/cmsbuilder
+
+# If using Git
+sudo -u www-data git pull
+
+# Or upload new files via SCP/SFTP, then fix ownership
+sudo chown -R www-data:www-data /var/www/cmsbuilder
+
+# Activate venv and update dependencies (if requirements.txt changed)
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Restart the service
+sudo systemctl restart cmsbuilder</code></pre>
+
+                    <!-- Troubleshooting -->
+                    <h5 class="mt-4 text-primary"><i class="bi bi-bug"></i> Troubleshooting</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Issue</th>
+                                    <th>Solution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>502 Bad Gateway</td>
+                                    <td>Check if Gunicorn is running: <code>sudo systemctl status cmsbuilder</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Permission denied errors</td>
+                                    <td>Fix ownership: <code>sudo chown -R www-data:www-data /var/www/cmsbuilder</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Static files not loading</td>
+                                    <td>Check Nginx config path and permissions on <code>/static</code> folder</td>
+                                </tr>
+                                <tr>
+                                    <td>Service won't start</td>
+                                    <td>Check logs: <code>sudo journalctl -u cmsbuilder -n 50</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Database errors</td>
+                                    <td>Ensure <code>cms.db</code> is writable by www-data</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Security Checklist -->
+                    <div class="alert alert-danger mt-4">
+                        <h6><i class="bi bi-shield-exclamation"></i> Production Security Checklist</h6>
+                        <ul class="mb-0">
+                            <li>Never use the default password (<code>admin</code>) in production</li>
+                            <li>Always set a unique <code>SECRET_KEY</code></li>
+                            <li>Keep your <code>.env</code> file out of version control</li>
+                            <li>Use HTTPS (SSL certificate configured)</li>
+                            <li>Enable UFW firewall</li>
+                            <li>Keep Ubuntu and packages updated: <code>sudo apt update && sudo apt upgrade</code></li>
+                            <li>Consider setting up automated backups for <code>cms.db</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- Prism.js for syntax highlighting -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+
+<style>
+    /* Code block styling */
+    pre[class*="language-"] {
+        border-radius: 8px;
+        margin: 1rem 0;
+        max-height: 400px;
+    }
+
+    code[class*="language-"] {
+        font-size: 0.875rem;
+    }
+
+    /* Inline code styling */
+    :not(pre) > code {
+        background-color: #f0f0f0;
+        padding: 0.2em 0.4em;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #d63384;
+    }
+
+    /* Card improvements */
+    .card-header h5 {
+        margin: 0;
+    }
+
+    /* Smooth scrolling for anchor links */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Highlight target section */
+    .card:target {
+        animation: highlight 2s ease-out;
+    }
+
+    @keyframes highlight {
+        0% { box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.5); }
+        100% { box-shadow: none; }
+    }
+</style>
+{% endblock %}

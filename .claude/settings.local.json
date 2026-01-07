@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "Bash(venvScriptsactivate)",
+      "Bash(pip install:*)",
+      "Bash(./venv/Scripts/pip install:*)",
+      "Bash(venvScriptspython app.py)",
+      "Bash(./venv/Scripts/python.exe:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(venvScriptspython.exe:*)",
+      "Bash(python:*)",
+      "Bash(call venvScriptsactivate)",
+      "Bash(c:UsersMilesDesktopPersonalCaspioSiteEmbeddervenvScriptspip install flask-login)",
+      "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/pip.exe\" install flask-login)",
+      "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\" -c:*)",
+      "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\":*)",
+      "Bash(if not exist \"c:\\\\Users\\\\Miles\\\\Desktop\\\\Personal\\\\CaspioSiteEmbedder\\\\static\\\\uploads\\\\.gitkeep\" echo.)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

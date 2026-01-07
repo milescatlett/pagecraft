@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Login - CMS Builder{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 420px;
+        padding: 15px;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .login-header i {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 15px;
+    }
+
+    .login-header h1 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .login-header p {
+        color: #666;
+        margin: 0;
+    }
+
+    .form-floating {
+        margin-bottom: 15px;
+    }
+
+    .form-floating input {
+        border-radius: 8px;
+    }
+
+    .form-floating input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+
+    .btn-login {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 12px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .btn-login:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .form-check-label {
+        color: #666;
+    }
+
+    .alert {
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <i class="bi bi-compass"></i>
+            <h1>CMS Builder</h1>
+            <p>Sign in to manage your sites</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+            <div class="form-floating">
+                <input type="text" class="form-control" id="username" name="username" placeholder="Username" required autofocus>
+                <label for="username"><i class="bi bi-person"></i> Username</label>
+            </div>
+
+            <div class="form-floating">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                <label for="password"><i class="bi bi-lock"></i> Password</label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                <label class="form-check-label" for="remember">
+                    Remember me
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-login">
+                <i class="bi bi-box-arrow-in-right"></i> Sign In
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
