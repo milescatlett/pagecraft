@@ -60,3 +60,8 @@ build/
 *.bak
 *.tmp
 .cache/
+
+#SSH
+hostinger
+hostinger.pub
+nul

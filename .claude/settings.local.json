@@ -16,7 +16,8 @@
       "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/pip.exe\" install flask-login)",
       "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\" -c:*)",
       "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\":*)",
-      "Bash(if not exist \"c:\\\\Users\\\\Miles\\\\Desktop\\\\Personal\\\\CaspioSiteEmbedder\\\\static\\\\uploads\\\\.gitkeep\" echo.)"
+      "Bash(if not exist \"c:\\\\Users\\\\Miles\\\\Desktop\\\\Personal\\\\CaspioSiteEmbedder\\\\static\\\\uploads\\\\.gitkeep\" echo.)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

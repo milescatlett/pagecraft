@@ -20,7 +20,10 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
 # Admin domains - requests from these domains will show the CMS admin interface
 # All other domains will be checked against site.domain for public site serving
-ADMIN_DOMAINS = ['localhost', '127.0.0.1', 'localhost:5000', '127.0.0.1:5000']
+ADMIN_DOMAINS = [
+    'localhost', '127.0.0.1', 'localhost:5000', '127.0.0.1:5000',
+    'pagecraft.host', 'www.pagecraft.host'
+]
 
 from database import db
 db.init_app(app)
@@ -56,6 +59,7 @@ with app.app_context():
         ('left_menu_id', 'ALTER TABLE pages ADD COLUMN left_menu_id INTEGER REFERENCES menus(id)'),
         ('right_menu_id', 'ALTER TABLE pages ADD COLUMN right_menu_id INTEGER REFERENCES menus(id)'),
         ('footer_id', 'ALTER TABLE pages ADD COLUMN footer_id INTEGER REFERENCES footers(id)'),
+        ('is_homepage', 'ALTER TABLE pages ADD COLUMN is_homepage BOOLEAN DEFAULT 0'),
     ]
 
     for col_name, sql in migrations:
@@ -337,8 +341,12 @@ def documentation():
 
 def serve_domain_homepage(site):
     """Serve the homepage for a domain-based site"""
-    # Find the root-level page with slug 'home' or 'index', or the first published root page
-    homepage = Page.query.filter_by(site_id=site.id, parent_id=None, slug='home', published=True).first()
+    # First, check for a page explicitly marked as homepage
+    homepage = Page.query.filter_by(site_id=site.id, is_homepage=True, published=True).first()
+
+    # Fallback: Find the root-level page with slug 'home' or 'index', or the first published root page
+    if not homepage:
+        homepage = Page.query.filter_by(site_id=site.id, parent_id=None, slug='home', published=True).first()
     if not homepage:
         homepage = Page.query.filter_by(site_id=site.id, parent_id=None, slug='index', published=True).first()
     if not homepage:
@@ -543,6 +551,15 @@ def save_page(page_id):
     if 'footer_id' in data:
         val = data['footer_id']
         page.footer_id = val if val == 0 or val else None
+
+    # Handle homepage setting - only one page per site can be the homepage
+    if 'is_homepage' in data:
+        if data['is_homepage']:
+            # Unset any existing homepage for this site
+            Page.query.filter_by(site_id=page.site_id, is_homepage=True).update({'is_homepage': False})
+            page.is_homepage = True
+        else:
+            page.is_homepage = False
 
     page.updated_at = datetime.utcnow()
     db.session.commit()

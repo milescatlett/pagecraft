@@ -54,6 +54,7 @@ class Page(db.Model):
     content = db.Column(db.Text)  # JSON string of widgets
     page_styles = db.Column(db.Text)  # JSON string of page styling
     published = db.Column(db.Boolean, default=False)  # Whether page is live
+    is_homepage = db.Column(db.Boolean, default=False)  # Whether this is the site's homepage
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
