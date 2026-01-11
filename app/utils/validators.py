@@ -1,6 +1,12 @@
 """Input validation utilities"""
-import magic
 import os
+
+# Optional magic import for file type detection
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
 
 
 def validate_page_data(data):
@@ -112,33 +118,36 @@ def validate_file_upload(file, user=None, app_config=None):
         if not user or not getattr(user, 'is_admin', False):
             return False, "SVG uploads are restricted to administrators", None
 
-    # Read first 2KB to check magic bytes
-    file.seek(0)
-    header = file.read(2048)
-    file.seek(0)
+    # Optional: Check magic bytes if library is available
+    if MAGIC_AVAILABLE:
+        # Read first 2KB to check magic bytes
+        file.seek(0)
+        header = file.read(2048)
+        file.seek(0)
 
-    try:
-        mime_type = magic.from_buffer(header, mime=True)
-    except Exception as e:
-        return False, f"Could not determine file type: {str(e)}", None
+        try:
+            mime_type = magic.from_buffer(header, mime=True)
+        except Exception as e:
+            # If magic fails, continue without it
+            return True, None, ext
 
-    # Map extensions to expected MIME types
-    allowed_mime_types = {
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'svg': 'image/svg+xml'
-    }
+        # Map extensions to expected MIME types
+        allowed_mime_types = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'svg': 'image/svg+xml'
+        }
 
-    expected_mime = allowed_mime_types.get(ext)
-    if expected_mime and mime_type != expected_mime:
-        # Some tolerance for JPEG variations
-        if ext in ['jpg', 'jpeg'] and 'image/jpeg' not in mime_type:
-            return False, f"File content doesn't match .{ext} extension", None
-        elif ext not in ['jpg', 'jpeg']:
-            return False, f"File content doesn't match .{ext} extension", None
+        expected_mime = allowed_mime_types.get(ext)
+        if expected_mime and mime_type != expected_mime:
+            # Some tolerance for JPEG variations
+            if ext in ['jpg', 'jpeg'] and 'image/jpeg' not in mime_type:
+                return False, f"File content doesn't match .{ext} extension", None
+            elif ext not in ['jpg', 'jpeg']:
+                return False, f"File content doesn't match .{ext} extension", None
 
     return True, None, ext
 
