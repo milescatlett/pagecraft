@@ -1705,6 +1705,13 @@ function setupAllDropZones() {
     setupModalDropZones();
 }
 
+function resetModalSaveHandler() {
+    const saveBtn = document.querySelector('#widgetModal .btn-primary');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    newSaveBtn.onclick = saveWidgetEdit;
+}
+
 function editRow(index) {
     const row = widgets[index];
     currentEditingWidget = {widget: row, index: index};
@@ -1718,6 +1725,7 @@ function editRow(index) {
         </div>
         ${getStyleFormHtml(row)}
     `;
+    resetModalSaveHandler();
     widgetModal.show();
 }
 
@@ -1734,6 +1742,7 @@ function editColumn(rowIndex, colIndex) {
         </div>
         ${getStyleFormHtml(column)}
     `;
+    resetModalSaveHandler();
     widgetModal.show();
 }
 
@@ -1750,6 +1759,7 @@ function editStandaloneColumn(index) {
         </div>
         ${getStyleFormHtml(column)}
     `;
+    resetModalSaveHandler();
     widgetModal.show();
 }
 
@@ -1776,6 +1786,7 @@ function editNestedRow(rowIndex, colIndex, childIndex) {
             <input type="number" class="form-control" id="numColumns" value="${row.numColumns || 2}" min="1" max="6">
         </div>
     `;
+    resetModalSaveHandler();
     widgetModal.show();
 }
 
@@ -2427,6 +2438,7 @@ function showWidgetEditForm(widget) {
     formHtml += getStyleFormHtml(widget);
 
     document.getElementById('widgetModalBody').innerHTML = formHtml;
+    resetModalSaveHandler();
     widgetModal.show();
 }
 
