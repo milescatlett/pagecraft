@@ -197,8 +197,8 @@ def generate_reset_link(user_id):
     token = user.generate_reset_token(expires_hours=24)
     db.session.commit()
 
-    # Build the reset URL
-    reset_url = url_for('users.reset_password_with_token', token=token, _external=True)
+    # Build the reset URL (force HTTPS for production behind reverse proxy)
+    reset_url = url_for('users.reset_password_with_token', token=token, _external=True, _scheme='https')
 
     if request.is_json:
         return jsonify({
