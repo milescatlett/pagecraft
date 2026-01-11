@@ -3,7 +3,13 @@ import requests
 from datetime import datetime, timedelta
 
 class CaspioAPI:
-    """Helper class for interacting with Caspio REST API"""
+    """
+    Helper class for interacting with Caspio REST API.
+
+    SECURITY NOTE: This integration is READ-ONLY. It can only retrieve
+    information about applications and datapages. It CANNOT create,
+    update, or delete any data in Caspio.
+    """
 
     def __init__(self):
         self.access_token = None
@@ -70,7 +76,16 @@ class CaspioAPI:
             return None
 
     def _make_request(self, endpoint, method='GET', params=None):
-        """Make an authenticated request to the Caspio API"""
+        """
+        Make an authenticated READ-ONLY request to the Caspio API.
+
+        SECURITY: This method is restricted to GET requests only to ensure
+        the integration remains read-only and cannot modify Caspio data.
+        """
+        # SECURITY: Enforce read-only access - reject any non-GET requests
+        if method.upper() != 'GET':
+            raise ValueError(f"Only GET requests are allowed. Attempted method: {method}")
+
         token = self.get_access_token()
         if not token:
             return None
@@ -83,10 +98,7 @@ class CaspioAPI:
         url = f"{self.base_url}/{endpoint}"
 
         try:
-            if method == 'GET':
-                response = requests.get(url, headers=headers, params=params)
-            else:
-                response = requests.request(method, url, headers=headers, params=params)
+            response = requests.get(url, headers=headers, params=params)
 
             if response.status_code == 200:
                 return response.json()

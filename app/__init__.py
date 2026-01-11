@@ -20,17 +20,18 @@ def create_app(config_name=None):
     limiter.init_app(app)
 
     # Configure Talisman (security headers)
-    # Disabled for local development, enable in production
-    # talisman.init_app(app,
-    #     content_security_policy={
-    #         'default-src': "'self'",
-    #         'script-src': ["'self'", 'cdn.jsdelivr.net'],
-    #         'style-src': ["'self'", 'cdn.jsdelivr.net', "'unsafe-inline'"],
-    #         'img-src': ["'self'", 'data:', 'https:'],
-    #         'frame-src': ["'self'", 'https://*.caspio.com']
-    #     },
-    #     force_https=False
-    # )
+    talisman.init_app(app,
+        content_security_policy={
+            'default-src': "'self'",
+            'script-src': ["'self'", 'cdn.jsdelivr.net', 'code.jquery.com', "'unsafe-inline'"],
+            'style-src': ["'self'", 'cdn.jsdelivr.net', "'unsafe-inline'"],
+            'font-src': ["'self'", 'cdn.jsdelivr.net'],
+            'img-src': ["'self'", 'data:', 'https:'],
+            'connect-src': ["'self'", 'cdn.jsdelivr.net'],
+            'frame-src': ["'self'", 'https://*.caspio.com']
+        },
+        force_https=False
+    )
 
     # Configure Flask-Login
     login_manager.login_view = 'auth.login'
@@ -123,3 +124,6 @@ def _initialize_database(app):
         print(f"Created admin user: {admin_username}")
         if admin_password == 'admin':
             print("WARNING: Using default password 'admin'. Set ADMIN_PASSWORD environment variable for security.")
+
+# Create default app instance for gunicorn
+app = create_app()
