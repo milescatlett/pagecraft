@@ -1,7 +1,13 @@
 """API blueprint for file uploads and Caspio integration"""
 import os
-import magic
 from flask import Blueprint, request, jsonify, current_app
+
+# Optional magic import for file type detection
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
 from flask_login import login_required, current_user
 from app.extensions import limiter
 from app.services.upload_service import UploadService
@@ -9,6 +15,22 @@ from app.services.image_service import ImageService
 from caspio import caspio_api
 
 bp = Blueprint('api', __name__)
+
+
+def _get_mime_from_extension(filename):
+    """Get MIME type from file extension (fallback when magic is not available)"""
+    ext = filename.lower().rsplit('.', 1)[-1] if '.' in filename else ''
+    mime_map = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'bmp': 'image/bmp',
+        'ico': 'image/x-icon'
+    }
+    return mime_map.get(ext, 'application/octet-stream')
 
 
 @bp.route('/upload', methods=['POST'])
@@ -41,10 +63,18 @@ def upload():
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file_size = os.path.getsize(filepath)
 
-        # Get MIME type using magic bytes
-        with open(filepath, 'rb') as f:
-            header = f.read(2048)
-            mime_type = magic.from_buffer(header, mime=True)
+        # Get MIME type using magic bytes (if available) or extension
+        if MAGIC_AVAILABLE:
+            with open(filepath, 'rb') as f:
+                header = f.read(2048)
+                try:
+                    mime_type = magic.from_buffer(header, mime=True)
+                except Exception:
+                    # Fall back to extension-based MIME type
+                    mime_type = _get_mime_from_extension(filename)
+        else:
+            # Use extension-based MIME type
+            mime_type = _get_mime_from_extension(filename)
 
         # Create Image record
         try:
