@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Login - CMS Builder{% endblock %}
+{% block title %}Login - PageCraft{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -90,9 +90,9 @@
 <div class="login-container">
     <div class="login-card">
         <div class="login-header">
-            <i class="bi bi-compass"></i>
-            <h1>CMS Builder</h1>
-            <p>Sign in to manage your sites</p>
+            <i class="bi bi-file-earmark-richtext"></i>
+            <h1>PageCraft</h1>
+            <p>Sign in to craft your websites</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -106,7 +106,8 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('login') }}{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+        <form method="POST" action="{{ url_for('auth.login') }}{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-floating">
                 <input type="text" class="form-control" id="username" name="username" placeholder="Username" required autofocus>
                 <label for="username"><i class="bi bi-person"></i> Username</label>

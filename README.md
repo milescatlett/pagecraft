@@ -1,6 +1,6 @@
-# Flask Drag & Drop Website Builder CMS
+# PageCraft - Website Builder CMS
 
-A modern, feature-rich content management system built with Flask that allows you to create and manage multiple websites with a drag-and-drop interface.
+A modern, feature-rich content management system built with Flask that allows you to craft and manage beautiful websites with an intuitive drag-and-drop interface.
 
 ## Features
 
@@ -46,7 +46,7 @@ The application will be available at `http://127.0.0.1:5000/`
 ## Project Structure
 
 ```
-CaspioSiteEmbedder/
+PageCraft/
 ├── app.py                  # Main Flask application
 ├── database.py             # Database configuration
 ├── models.py               # Database models

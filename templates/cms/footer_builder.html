@@ -6,22 +6,23 @@
 <div class="cms-container">
     <nav class="cms-sidebar">
         <div class="sidebar-header">
-            <h4><i class="bi bi-compass"></i> CMS Builder</h4>
+            <h4><i class="bi bi-file-earmark-richtext"></i> PageCraft</h4>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="/"><i class="bi bi-grid"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('cms.index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('cms.images') }}"><i class="bi bi-images"></i> Images</a></li>
             {% if current_user.is_admin %}
-            <li><a href="/users"><i class="bi bi-people"></i> Users</a></li>
+            <li><a href="{{ url_for('users.users_list') }}"><i class="bi bi-people"></i> Users</a></li>
             {% endif %}
-            <li><a href="/site/{{ site.id }}"><i class="bi bi-globe"></i> {{ site.name }}</a></li>
-            <li><a href="/docs"><i class="bi bi-book"></i> Documentation</a></li>
+            <li><a href="{{ url_for('cms.site_detail', site_id=site.id) }}"><i class="bi bi-globe"></i> {{ site.name }}</a></li>
+            <li><a href="{{ url_for('cms.documentation') }}"><i class="bi bi-journal-text"></i> Documentation</a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="user-info">
                 <i class="bi bi-person-circle"></i>
                 <span>{{ current_user.username }}</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm w-100">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
                 <i class="bi bi-box-arrow-left"></i> Logout
             </a>
         </div>
@@ -497,6 +498,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+// CSRF token helper function
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
+
+// Helper to get headers with CSRF token for fetch requests
+function getHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+    };
+}
+
 const siteId = {{ footer.site_id }};
 const footerId = {{ footer.id }};
 let widgets = {{ footer.content|safe }};
@@ -2093,7 +2107,7 @@ function loadGalleryImages() {
     grid.style.display = 'none';
     empty.style.display = 'none';
 
-    fetch('/images/list')
+    fetch('/api/images/list')
         .then(response => response.json())
         .then(data => {
             loading.style.display = 'none';
@@ -2146,8 +2160,11 @@ function uploadToGallery() {
     const progressDiv = document.getElementById('uploadProgress');
     progressDiv.style.display = 'block';
 
-    fetch('/upload', {
+    fetch('/api/upload', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        },
         body: formData
     })
     .then(response => response.json())
@@ -2188,7 +2205,7 @@ function saveFooter() {
 
     fetch('/footer/{{ footer.id }}/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             name: name,
             is_active: isActive,
@@ -2401,7 +2418,7 @@ function saveFooterStylesEdit() {
     // Auto-save footer styles to database
     fetch(`/footer/${footerId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             footer_styles: footerStyles
         })

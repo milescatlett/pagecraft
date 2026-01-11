@@ -26,7 +26,7 @@ class CaspioAPI:
 
     @property
     def base_url(self):
-        return f"https://{self.account_id}.caspio.com/rest/v2"
+        return f"https://{self.account_id}.caspio.com/integrations/rest/v3"
 
     @property
     def token_url(self):
@@ -98,8 +98,8 @@ class CaspioAPI:
             return None
 
     def get_applications(self):
-        """Get list of all applications"""
-        result = self._make_request('applications')
+        """Get list of all bridge applications"""
+        result = self._make_request('bridgeApplications')
         if result and 'Result' in result:
             return result['Result']
         return []
@@ -119,7 +119,7 @@ class CaspioAPI:
             external_key = app.get('ExternalKey', '')
 
             # Get datapages for this app using ExternalKey (not AppName)
-            datapages_result = self._make_request(f'applications/{external_key}/datapages')
+            datapages_result = self._make_request(f'bridgeApplications/{external_key}/datapages')
 
             if datapages_result and 'Result' in datapages_result:
                 datapages = datapages_result['Result']

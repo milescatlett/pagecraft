@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}User Management{% endblock %}
+{% block title %}User Management - PageCraft{% endblock %}
 
 {% block body %}
 <div class="cms-container">
     <nav class="cms-sidebar">
         <div class="sidebar-header">
-            <h4><i class="bi bi-compass"></i> CMS Builder</h4>
+            <h4><i class="bi bi-file-earmark-richtext"></i> PageCraft</h4>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="/"><i class="bi bi-grid"></i> Dashboard</a></li>
-            <li class="active"><a href="/users"><i class="bi bi-people"></i> Users</a></li>
-            <li><a href="/docs"><i class="bi bi-book"></i> Documentation</a></li>
+            <li><a href="{{ url_for('cms.index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('cms.images') }}"><i class="bi bi-images"></i> Images</a></li>
+            <li class="active"><a href="{{ url_for('users.users_list') }}"><i class="bi bi-people"></i> Users</a></li>
+            <li><a href="{{ url_for('cms.documentation') }}"><i class="bi bi-journal-text"></i> Documentation</a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="user-info">
                 <i class="bi bi-person-circle"></i>
                 <span>{{ current_user.username }}</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm w-100">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
                 <i class="bi bi-box-arrow-left"></i> Logout
             </a>
         </div>
@@ -189,6 +190,18 @@
 </div>
 
 <script>
+// CSRF token helper function
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
+
+function getHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+    };
+}
+
 let createModal, resetModal, deleteModal;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -214,9 +227,9 @@ function createUser() {
         return;
     }
 
-    fetch('/users/create', {
+    fetch('{{ url_for("users.users_create") }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ username, password, is_admin: isAdmin })
     })
     .then(response => response.json())
@@ -249,9 +262,9 @@ function resetPassword() {
         return;
     }
 
-    fetch(`/users/${userId}/reset-password`, {
+    fetch('/users/' + userId + '/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ password })
     })
     .then(response => response.json())
@@ -270,9 +283,9 @@ function resetPassword() {
 }
 
 function toggleAdmin(userId) {
-    fetch(`/users/${userId}/toggle-admin`, {
+    fetch('/users/' + userId + '/toggle-admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getHeaders()
     })
     .then(response => response.json())
     .then(data => {
@@ -297,9 +310,9 @@ function confirmDelete(userId, username) {
 function deleteUser() {
     const userId = document.getElementById('deleteUserId').value;
 
-    fetch(`/users/${userId}/delete`, {
+    fetch('/users/' + userId + '/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getHeaders()
     })
     .then(response => response.json())
     .then(data => {

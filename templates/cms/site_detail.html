@@ -6,22 +6,23 @@
 <div class="cms-container">
     <nav class="cms-sidebar">
         <div class="sidebar-header">
-            <h4><i class="bi bi-compass"></i> CMS Builder</h4>
+            <h4><i class="bi bi-file-earmark-richtext"></i> PageCraft</h4>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="/"><i class="bi bi-grid"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('cms.index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('cms.images') }}"><i class="bi bi-images"></i> Images</a></li>
             {% if current_user.is_admin %}
-            <li><a href="/users"><i class="bi bi-people"></i> Users</a></li>
+            <li><a href="{{ url_for('users.users_list') }}"><i class="bi bi-people"></i> Users</a></li>
             {% endif %}
-            <li class="active"><a href="/site/{{ site.id }}"><i class="bi bi-globe"></i> {{ site.name }}</a></li>
-            <li><a href="/docs"><i class="bi bi-book"></i> Documentation</a></li>
+            <li class="active"><a href="{{ url_for('cms.site_detail', site_id=site.id) }}"><i class="bi bi-globe"></i> {{ site.name }}</a></li>
+            <li><a href="{{ url_for('cms.documentation') }}"><i class="bi bi-journal-text"></i> Documentation</a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="user-info">
                 <i class="bi bi-person-circle"></i>
                 <span>{{ current_user.username }}</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm w-100">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
                 <i class="bi bi-box-arrow-left"></i> Logout
             </a>
         </div>
@@ -119,7 +120,7 @@
                                         <small class="text-muted">
                                             <code>/{{ page.get_full_path() }}</code>
                                             {% if page.published %}
-                                            <a href="/site/{{ site.id }}/{{ page.get_full_path() }}" target="_blank" class="ms-1">
+                                            <a href="{{ url_for('public.public_page', site_id=site.id, slug=page.get_full_path()) }}" target="_blank" class="ms-1">
                                                 <i class="bi bi-box-arrow-up-right"></i>
                                             </a>
                                             {% endif %}
@@ -132,10 +133,10 @@
                                         <button class="btn btn-sm btn-outline-secondary" onclick="showCopyPageModal({{ page.id }}, '{{ page.title|e }}', '{{ page.slug }}', {{ page.children|length }})" title="Copy page">
                                             <i class="bi bi-copy"></i>
                                         </button>
-                                        <a href="/page/{{ page.id }}/edit" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <a href="{{ url_for('cms.edit_page', page_id=page.id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="/preview/{{ page.id }}" target="_blank" class="btn btn-sm btn-outline-info" title="Preview">
+                                        <a href="{{ url_for('cms.preview_page', page_id=page.id) }}" target="_blank" class="btn btn-sm btn-outline-info" title="Preview">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <button class="btn btn-sm btn-outline-danger" onclick="deletePage({{ page.id }})" title="Delete">
@@ -218,7 +219,7 @@
                                             {% endif %}
                                         </div>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="/menu/{{ menu.id }}/edit" class="btn btn-outline-primary">
+                                            <a href="{{ url_for('cms.edit_menu', menu_id=menu.id) }}" class="btn btn-outline-primary">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <button class="btn btn-outline-danger" onclick="deleteMenu({{ menu.id }})">
@@ -264,7 +265,7 @@
                                             {% endif %}
                                         </div>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="/footer/{{ footer.id }}/edit" class="btn btn-outline-primary">
+                                            <a href="{{ url_for('cms.edit_footer', footer_id=footer.id) }}" class="btn btn-outline-primary">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             <button class="btn btn-outline-danger" onclick="deleteFooter({{ footer.id }})">
@@ -471,6 +472,18 @@
 </div>
 
 <script>
+// CSRF token helper function
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
+
+function getHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+    };
+}
+
 const siteId = {{ site.id }};
 
 // Page paths for preview
@@ -571,9 +584,9 @@ function createPage() {
         return;
     }
 
-    fetch(`/site/${siteId}/page/create`, {
+    fetch('{{ url_for("cms.create_page", site_id=site.id) }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ title, slug, parent_id: parentId || null })
     })
     .then(response => response.json())
@@ -597,9 +610,9 @@ function createMenu() {
         return;
     }
 
-    fetch(`/site/${siteId}/menu/create`, {
+    fetch('{{ url_for("cms.create_menu", site_id=site.id) }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ name, position })
     })
     .then(response => response.json())
@@ -622,9 +635,9 @@ function createFooter() {
         return;
     }
 
-    fetch(`/site/${siteId}/footer/create`, {
+    fetch('{{ url_for("cms.create_footer", site_id=site.id) }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ name })
     })
     .then(response => response.json())
@@ -642,9 +655,9 @@ function createFooter() {
 function deletePage(pageId) {
     if (!confirm('Are you sure you want to delete this page?')) return;
 
-    fetch(`/page/${pageId}/delete`, {
+    fetch('/page/' + pageId + '/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getHeaders()
     })
     .then(response => response.json())
     .then(data => {
@@ -661,9 +674,9 @@ function deletePage(pageId) {
 function deleteMenu(menuId) {
     if (!confirm('Are you sure you want to delete this menu?')) return;
 
-    fetch(`/menu/${menuId}/delete`, {
+    fetch('/menu/' + menuId + '/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getHeaders()
     })
     .then(response => response.json())
     .then(data => {
@@ -680,9 +693,9 @@ function deleteMenu(menuId) {
 function deleteFooter(footerId) {
     if (!confirm('Are you sure you want to delete this footer?')) return;
 
-    fetch(`/footer/${footerId}/delete`, {
+    fetch('/footer/' + footerId + '/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: getHeaders()
     })
     .then(response => response.json())
     .then(data => {
@@ -707,9 +720,9 @@ function saveDomain() {
     // Remove http:// or https:// if user included it
     const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-    fetch(`/site/${siteId}/update`, {
+    fetch('{{ url_for("cms.update_site", site_id=site.id) }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ domain: cleanDomain })
     })
     .then(response => response.json())
@@ -764,9 +777,9 @@ function copyPage() {
     copyBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Copying...';
     copyBtn.disabled = true;
 
-    fetch(`/page/${pageId}/copy`, {
+    fetch('/page/' + pageId + '/copy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ title, slug, include_children: includeChildren })
     })
     .then(response => response.json())

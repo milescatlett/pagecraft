@@ -516,7 +516,7 @@
                     <span id="publishText">{% if page.published %}Unpublish{% else %}Publish{% endif %}</span>
                 </button>
                 {% if page.published %}
-                <a href="/site/{{ page.site_id }}/{{ page.slug }}" target="_blank" class="btn btn-sm btn-info">
+                <a href="/site/{{ page.site_id }}/{{ page.get_full_path() }}" target="_blank" class="btn btn-sm btn-info">
                     <i class="bi bi-box-arrow-up-right"></i> View Live
                 </a>
                 {% endif %}
@@ -530,7 +530,7 @@
                 </span>
                 <span class="ms-3 border-start ps-3">
                     <span class="text-muted small me-2"><i class="bi bi-person"></i> {{ current_user.username }}</span>
-                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-box-arrow-left"></i> Logout
                     </a>
                 </span>
@@ -686,6 +686,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+// CSRF token helper function
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
+
+// Helper to get headers with CSRF token for fetch requests
+function getHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+    };
+}
+
 const pageId = {{ page.id }};
 const siteId = {{ page.site_id }};
 let widgets = {{ page.content|safe }};
@@ -2902,7 +2915,7 @@ function savePageStylesEdit() {
     // Auto-save page styles to database
     fetch(`/page/${pageId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             page_styles: pageStyles
         })
@@ -3029,7 +3042,7 @@ function savePageMenusEdit() {
     // Save to database
     fetch(`/page/${pageId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             top_menu_id: pageMenuSettings.top_menu_id,
             left_menu_id: pageMenuSettings.left_menu_id,
@@ -3196,7 +3209,7 @@ function savePage() {
 
     fetch(`/page/${pageId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             title: title,
             slug: slug,
@@ -3230,7 +3243,7 @@ function togglePublish() {
 
     fetch(`/page/${pageId}/publish`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ published: newState })
     })
     .then(response => response.json())
@@ -3255,7 +3268,7 @@ function toggleHomepage() {
 
     fetch(`/page/${pageId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ is_homepage: newState })
     })
     .then(response => response.json())
@@ -3423,11 +3436,28 @@ function uploadImage() {
     const formData = new FormData();
     formData.append('file', file);
 
-    fetch('/upload', {
+    const csrfToken = getCSRFToken();
+    console.log('CSRF Token:', csrfToken);
+
+    fetch('/api/upload', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.log('Error response:', text);
+                throw new Error('Upload failed with status ' + response.status);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         uploadBtn.disabled = false;
         uploadBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> Upload';
@@ -3445,6 +3475,7 @@ function uploadImage() {
     .catch(error => {
         uploadBtn.disabled = false;
         uploadBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> Upload';
+        console.error('Upload error:', error);
         showUploadError('Upload failed: ' + error.message);
     });
 }
@@ -3485,7 +3516,7 @@ function loadGalleryImages() {
     grid.style.display = 'none';
     empty.style.display = 'none';
 
-    fetch('/images/list')
+    fetch('/api/images/list')
         .then(response => response.json())
         .then(data => {
             loading.style.display = 'none';
@@ -3543,8 +3574,11 @@ function uploadToGallery() {
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
 
-    fetch('/upload', {
+    fetch('/api/upload', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        },
         body: formData
     })
     .then(response => response.json())

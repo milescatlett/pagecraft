@@ -399,7 +399,7 @@
                 </button>
                 <span class="ms-3 border-start ps-3">
                     <span class="text-muted small me-2"><i class="bi bi-person"></i> {{ current_user.username }}</span>
-                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-box-arrow-left"></i> Logout
                     </a>
                 </span>
@@ -549,6 +549,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+// CSRF token helper function
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
+
+// Helper to get headers with CSRF token for fetch requests
+function getHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+    };
+}
+
 const menuId = {{ menu.id }};
 const siteId = {{ menu.site_id }};
 let widgets = {{ menu_content|safe }};
@@ -2421,7 +2434,7 @@ function saveMenuStylesEdit() {
     // Auto-save menu styles to database
     fetch(`/menu/${menuId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             menu_styles: menuStyles
         })
@@ -2451,7 +2464,7 @@ function saveMenu() {
 
     fetch(`/menu/${menuId}/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({
             name: name,
             position: position,
@@ -2496,8 +2509,11 @@ function uploadImage() {
     const formData = new FormData();
     formData.append('file', file);
 
-    fetch('/upload', {
+    fetch('/api/upload', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        },
         body: formData
     })
     .then(response => response.json())
@@ -2570,7 +2586,7 @@ function loadGalleryImages() {
     grid.style.display = 'none';
     empty.style.display = 'none';
 
-    fetch('/images/list')
+    fetch('/api/images/list')
         .then(response => response.json())
         .then(data => {
             loading.style.display = 'none';
@@ -2623,8 +2639,11 @@ function uploadToGallery() {
     const progressDiv = document.getElementById('uploadProgress');
     progressDiv.style.display = 'block';
 
-    fetch('/upload', {
+    fetch('/api/upload', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken()
+        },
         body: formData
     })
     .then(response => response.json())

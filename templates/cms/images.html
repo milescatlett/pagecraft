@@ -1,0 +1,1213 @@
+{% extends "base.html" %}
+
+{% block title %}Image Gallery - PageCraft{% endblock %}
+
+{% block extra_css %}
+<style>
+.images-container {
+    display: flex;
+    height: 100vh;
+}
+
+.folder-panel {
+    width: 250px;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.folder-tree {
+    list-style: none;
+    padding-left: 0;
+}
+
+.folder-tree li {
+    margin: 0.25rem 0;
+}
+
+.folder-tree ul {
+    list-style: none;
+    padding-left: 1.5rem;
+}
+
+.folder-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.folder-item:hover {
+    background: #e9ecef;
+}
+
+.folder-item.active {
+    background: #0d6efd;
+    color: white;
+}
+
+.folder-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.folder-count {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+.image-grid-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.images-toolbar {
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.images-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.image-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.image-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.image-preview {
+    width: 100%;
+    height: 200px;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.image-info {
+    padding: 0.75rem;
+}
+
+.image-filename {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.image-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #6c757d;
+    flex-wrap: wrap;
+}
+
+.image-tags {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.tag-pill {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    background: #e7f3ff;
+    color: #0d6efd;
+    border-radius: 1rem;
+}
+
+.usage-list {
+    list-style: none;
+    padding: 0;
+}
+
+.usage-item {
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-container {
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="cms-container">
+    <nav class="cms-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-file-earmark-richtext"></i> PageCraft</h4>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="{{ url_for('cms.index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+            <li class="active"><a href="{{ url_for('cms.images') }}"><i class="bi bi-images"></i> Images</a></li>
+            {% if current_user.is_admin %}
+            <li><a href="{{ url_for('users.users_list') }}"><i class="bi bi-people"></i> Users</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('cms.documentation') }}"><i class="bi bi-journal-text"></i> Documentation</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ current_user.username }}</span>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
+                <i class="bi bi-box-arrow-left"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="cms-main">
+        <div class="cms-header">
+            <h1><i class="bi bi-images"></i> Image Gallery</h1>
+            <button class="btn btn-primary" onclick="showUploadModal()">
+                <i class="bi bi-upload"></i> Upload Image
+            </button>
+        </div>
+
+        <div class="images-container">
+            <!-- Folder Panel -->
+            <div class="folder-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Folders</h6>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showCreateFolderModal()">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+                <div class="folder-item active" data-folder-id="root" onclick="filterByFolder('root')">
+                    <span class="folder-name">
+                        <i class="bi bi-folder"></i>
+                        All Images
+                    </span>
+                    <span class="folder-count" id="rootCount">0</span>
+                </div>
+                <ul class="folder-tree" id="folderTree">
+                    <!-- Folders loaded via JS -->
+                </ul>
+            </div>
+
+            <!-- Image Grid Container -->
+            <div class="image-grid-container">
+                <!-- Toolbar -->
+                <div class="images-toolbar">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search images..." style="max-width: 300px;">
+                    <select class="form-select" id="sortSelect" style="max-width: 200px;">
+                        <option value="uploaded_at">Sort by Date</option>
+                        <option value="original_filename">Sort by Name</option>
+                        <option value="file_size">Sort by Size</option>
+                    </select>
+                    <select class="form-select" id="orderSelect" style="max-width: 150px;">
+                        <option value="desc">Newest First</option>
+                        <option value="asc">Oldest First</option>
+                    </select>
+                    <button class="btn btn-outline-secondary" onclick="loadImages()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+
+                <!-- Image Grid -->
+                <div class="images-grid">
+                    <div class="image-grid" id="imageGrid">
+                        <!-- Images loaded via JS -->
+                    </div>
+                    <div class="text-center py-5" id="emptyState" style="display: none;">
+                        <i class="bi bi-images" style="font-size: 4rem; color: #dee2e6;"></i>
+                        <h4 class="mt-3 text-muted">No images found</h4>
+                        <p class="text-muted">Upload your first image to get started</p>
+                    </div>
+                    <div class="text-center py-5" id="loadingState">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" id="paginationContainer" style="display: none;">
+                    <!-- Pagination loaded via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="fileInput" class="form-label">Select Image</label>
+                    <input type="file" class="form-control" id="fileInput" accept="image/*" multiple>
+                </div>
+                <div class="mb-3">
+                    <label for="uploadFolderSelect" class="form-label">Folder</label>
+                    <select class="form-select" id="uploadFolderSelect">
+                        <option value="">Root</option>
+                        <!-- Folders populated via JS -->
+                    </select>
+                </div>
+                <div id="uploadProgress" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadImages()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Detail Modal -->
+<div class="modal fade" id="imageDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Image Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div id="detailImagePreview" class="mb-3" style="max-height: 400px; overflow: hidden; background: #f8f9fa; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+                            <!-- Image loaded via JS -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>File Information</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Filename:</strong></td>
+                                <td id="detailFilename"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Size:</strong></td>
+                                <td id="detailSize"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Dimensions:</strong></td>
+                                <td id="detailDimensions"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Uploaded:</strong></td>
+                                <td id="detailUploaded"></td>
+                            </tr>
+                        </table>
+
+                        <div class="mb-3">
+                            <label class="form-label">Folder</label>
+                            <select class="form-select" id="detailFolderSelect">
+                                <option value="">Root</option>
+                                <!-- Folders populated via JS -->
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Tags</label>
+                            <input type="text" class="form-control" id="detailTags" placeholder="Enter tags separated by commas">
+                            <small class="text-muted">Separate tags with commas</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6>Usage Locations</h6>
+                            <ul class="usage-list" id="usageList">
+                                <!-- Usage loaded via JS -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info" onclick="showCropModal()">
+                    <i class="bi bi-crop"></i> Crop Image
+                </button>
+                <button type="button" class="btn btn-danger" id="deleteImageBtn" onclick="deleteImage()">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveImageDetails()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Folder Modal -->
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="folderName" class="form-label">Folder Name</label>
+                    <input type="text" class="form-control" id="folderName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="parentFolderSelect" class="form-label">Parent Folder</label>
+                    <select class="form-select" id="parentFolderSelect">
+                        <option value="">Root</option>
+                        <!-- Folders populated via JS -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createFolder()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crop Image Modal -->
+<div class="modal fade" id="cropModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crop Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Click and drag on the image to select the area you want to crop.
+                </div>
+                <div style="text-align: center; overflow: auto; max-height: 70vh; background: #f8f9fa;">
+                    <div style="position: relative; display: inline-block;">
+                        <canvas id="cropCanvas" style="cursor: crosshair; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">X: <span id="cropX">0</span>px</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Y: <span id="cropY">0</span>px</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Width: <span id="cropWidth">0</span>px</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Height: <span id="cropHeight">0</span>px</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="applyCrop()" id="applyCropBtn" disabled>
+                    <i class="bi bi-check-circle"></i> Create Cropped Copy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF token helper
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
+
+function getHeaders(includeCSRF = true) {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (includeCSRF) {
+        headers['X-CSRFToken'] = getCSRFToken();
+    }
+    return headers;
+}
+
+// State
+let currentPage = 1;
+let currentFolder = 'root';
+let currentImageId = null;
+let allFolders = [];
+
+// Initialize - use native JS to ensure DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, initializing image gallery...');
+    loadFolders();
+    loadImages();
+
+    // Search with debounce
+    let searchTimeout;
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                loadImages();
+            }, 500);
+        });
+    }
+
+    // Sort/order change
+    const sortSelect = document.getElementById('sortSelect');
+    const orderSelect = document.getElementById('orderSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            currentPage = 1;
+            loadImages();
+        });
+    }
+    if (orderSelect) {
+        orderSelect.addEventListener('change', function() {
+            currentPage = 1;
+            loadImages();
+        });
+    }
+});
+
+// Load folder tree
+function loadFolders() {
+    console.log('Loading folders...');
+    fetch('/api/images/folders')
+    .then(response => {
+        console.log('Folders response:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Folders data:', data);
+        if (data.success) {
+            allFolders = data.folders;
+            renderFolderTree(data.folders);
+            populateFolderSelects();
+            console.log('Folders loaded successfully:', data.folders.length);
+        } else {
+            console.error('Failed to load folders:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading folders:', error);
+    });
+}
+
+function renderFolderTree(folders, parentElement = null) {
+    const container = parentElement || document.getElementById('folderTree');
+
+    folders.forEach(folder => {
+        const li = document.createElement('li');
+        const div = document.createElement('div');
+        div.className = 'folder-item';
+        div.dataset.folderId = folder.id;
+        div.onclick = () => filterByFolder(folder.id);
+
+        div.innerHTML = `
+            <span class="folder-name">
+                <i class="bi bi-folder"></i>
+                ${folder.name}
+            </span>
+            <span class="folder-count">${folder.image_count}</span>
+        `;
+
+        li.appendChild(div);
+
+        if (folder.children && folder.children.length > 0) {
+            const ul = document.createElement('ul');
+            li.appendChild(ul);
+            renderFolderTree(folder.children, ul);
+        }
+
+        container.appendChild(li);
+    });
+}
+
+function populateFolderSelects() {
+    const selects = ['uploadFolderSelect', 'detailFolderSelect', 'parentFolderSelect'];
+
+    function flattenFolders(folders, prefix = '') {
+        let result = [];
+        folders.forEach(folder => {
+            const path = prefix ? `${prefix}/${folder.name}` : folder.name;
+            result.push({ id: folder.id, path: path });
+            if (folder.children && folder.children.length > 0) {
+                result = result.concat(flattenFolders(folder.children, path));
+            }
+        });
+        return result;
+    }
+
+    const flatFolders = flattenFolders(allFolders);
+
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        // Clear existing options except first (Root)
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+
+        flatFolders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.path;
+            select.appendChild(option);
+        });
+    });
+}
+
+function filterByFolder(folderId) {
+    currentFolder = folderId;
+    currentPage = 1;
+
+    // Update active state
+    document.querySelectorAll('.folder-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-folder-id="${folderId}"]`).classList.add('active');
+
+    loadImages();
+}
+
+// Load images
+function loadImages() {
+    console.log('Loading images...');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const orderSelect = document.getElementById('orderSelect');
+
+    const search = searchInput ? searchInput.value : '';
+    const sort = sortSelect ? sortSelect.value : 'uploaded_at';
+    const order = orderSelect ? orderSelect.value : 'desc';
+
+    const params = new URLSearchParams({
+        page: currentPage,
+        per_page: 50,
+        sort: sort,
+        order: order
+    });
+
+    if (currentFolder !== 'root') {
+        params.append('folder_id', currentFolder);
+    }
+
+    if (search) {
+        params.append('search', search);
+    }
+
+    const loadingState = document.getElementById('loadingState');
+    const imageGrid = document.getElementById('imageGrid');
+    const emptyState = document.getElementById('emptyState');
+    const paginationContainer = document.getElementById('paginationContainer');
+
+    if (loadingState) loadingState.style.display = 'block';
+    if (imageGrid) imageGrid.innerHTML = '';
+    if (emptyState) emptyState.style.display = 'none';
+
+    console.log('Fetching images with params:', params.toString());
+
+    fetch(`/api/images?${params}`)
+    .then(response => {
+        console.log('Images response:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Images data:', data);
+        if (loadingState) loadingState.style.display = 'none';
+
+        if (data.success) {
+            console.log('Found', data.images.length, 'images');
+            if (data.images.length === 0) {
+                if (emptyState) emptyState.style.display = 'block';
+                if (paginationContainer) paginationContainer.style.display = 'none';
+            } else {
+                renderImages(data.images);
+                renderPagination(data.pagination);
+                if (paginationContainer) paginationContainer.style.display = 'flex';
+            }
+        } else {
+            console.error('API returned success: false', data);
+            if (emptyState) emptyState.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading images:', error);
+        if (loadingState) loadingState.style.display = 'none';
+        if (emptyState) {
+            emptyState.innerHTML = `
+                <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #dc3545;"></i>
+                <h4 class="mt-3 text-danger">Error loading images</h4>
+                <p class="text-muted">${error.message}</p>
+                <button class="btn btn-primary" onclick="loadImages()">Try Again</button>
+            `;
+            emptyState.style.display = 'block';
+        }
+    });
+}
+
+function renderImages(images) {
+    const grid = document.getElementById('imageGrid');
+    grid.innerHTML = '';
+
+    images.forEach(image => {
+        const card = document.createElement('div');
+        card.className = 'image-card';
+        card.onclick = () => showImageDetail(image.id);
+
+        const tagsHtml = image.tags && image.tags.length > 0
+            ? `<div class="image-tags">${image.tags.map(tag => `<span class="tag-pill">${tag}</span>`).join('')}</div>`
+            : '';
+
+        card.innerHTML = `
+            <div class="image-preview">
+                <img src="${image.url}" alt="${image.original_filename}">
+            </div>
+            <div class="image-info">
+                <div class="image-filename" title="${image.original_filename}">${image.original_filename}</div>
+                <div class="image-meta">
+                    <span><i class="bi bi-file-earmark"></i> ${formatFileSize(image.file_size)}</span>
+                    ${image.width && image.height ? `<span><i class="bi bi-aspect-ratio"></i> ${image.width}×${image.height}</span>` : ''}
+                </div>
+                ${tagsHtml}
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
+}
+
+function renderPagination(pagination) {
+    const container = document.getElementById('paginationContainer');
+    container.innerHTML = `
+        <nav>
+            <ul class="pagination mb-0">
+                <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${pagination.page - 1}); return false;">Previous</a>
+                </li>
+                ${Array.from({length: pagination.pages}, (_, i) => i + 1).map(p => `
+                    <li class="page-item ${p === pagination.page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${p}); return false;">${p}</a>
+                    </li>
+                `).join('')}
+                <li class="page-item ${pagination.page === pagination.pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${pagination.page + 1}); return false;">Next</a>
+                </li>
+            </ul>
+        </nav>
+    `;
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadImages();
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Upload modal
+function showUploadModal() {
+    const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
+    modal.show();
+}
+
+function uploadImages() {
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
+    const folderId = document.getElementById('uploadFolderSelect').value;
+
+    if (files.length === 0) {
+        alert('Please select at least one file');
+        return;
+    }
+
+    const progressDiv = document.getElementById('uploadProgress');
+    progressDiv.style.display = 'block';
+
+    let completed = 0;
+    const total = files.length;
+
+    Array.from(files).forEach(file => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (folderId) {
+            formData.append('folder_id', folderId);
+        }
+
+        fetch('/api/upload', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            completed++;
+            const progress = (completed / total) * 100;
+            progressDiv.querySelector('.progress-bar').style.width = progress + '%';
+
+            if (completed === total) {
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                    loadImages();
+                    loadFolders();
+                    progressDiv.style.display = 'none';
+                    progressDiv.querySelector('.progress-bar').style.width = '0%';
+                    fileInput.value = '';
+                }, 500);
+            }
+        })
+        .catch(error => {
+            console.error('Upload error:', error);
+            alert('Failed to upload: ' + file.name);
+        });
+    });
+}
+
+// Image detail modal
+function showImageDetail(imageId) {
+    currentImageId = imageId;
+
+    fetch(`/api/images/${imageId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const image = data.image;
+
+            // Populate modal
+            document.getElementById('detailImagePreview').innerHTML = `
+                <img src="${image.url}" style="max-width: 100%; max-height: 400px;">
+            `;
+            document.getElementById('detailFilename').textContent = image.original_filename;
+            document.getElementById('detailSize').textContent = formatFileSize(image.file_size);
+            document.getElementById('detailDimensions').textContent = image.width && image.height ? `${image.width} × ${image.height}` : 'N/A';
+            document.getElementById('detailUploaded').textContent = new Date(image.uploaded_at).toLocaleString();
+            document.getElementById('detailFolderSelect').value = image.folder_id || '';
+            document.getElementById('detailTags').value = image.tags ? image.tags.join(', ') : '';
+
+            // Render usage
+            const usageList = document.getElementById('usageList');
+            if (image.usage && image.usage.length > 0) {
+                usageList.innerHTML = image.usage.map(use => `
+                    <li class="usage-item">
+                        <span>
+                            <i class="bi bi-${use.type === 'page' ? 'file-earmark' : use.type === 'menu' ? 'menu-button' : 'layout-footer'}"></i>
+                            ${use.name} - ${use.location}
+                        </span>
+                        <a href="${use.url}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    </li>
+                `).join('');
+
+                // Disable delete button if in use
+                document.getElementById('deleteImageBtn').disabled = true;
+                document.getElementById('deleteImageBtn').title = 'Cannot delete image that is in use';
+            } else {
+                usageList.innerHTML = '<li class="text-muted">Not used anywhere</li>';
+                document.getElementById('deleteImageBtn').disabled = false;
+                document.getElementById('deleteImageBtn').title = '';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('imageDetailModal'));
+            modal.show();
+        }
+    })
+    .catch(error => console.error('Error loading image details:', error));
+}
+
+function saveImageDetails() {
+    const folderId = document.getElementById('detailFolderSelect').value;
+    const tagsInput = document.getElementById('detailTags').value;
+    const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+    fetch(`/api/images/${currentImageId}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+            folder_id: folderId || 'root',
+            tags: tags
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('imageDetailModal')).hide();
+            loadImages();
+            loadFolders();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving image:', error);
+        alert('Failed to save changes');
+    });
+}
+
+function deleteImage() {
+    if (!confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+        return;
+    }
+
+    fetch(`/api/images/${currentImageId}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('imageDetailModal')).hide();
+            loadImages();
+            loadFolders();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting image:', error);
+        alert('Failed to delete image');
+    });
+}
+
+// Folder management
+function showCreateFolderModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createFolderModal'));
+    modal.show();
+}
+
+function createFolder() {
+    const name = document.getElementById('folderName').value.trim();
+    const parentId = document.getElementById('parentFolderSelect').value;
+
+    if (!name) {
+        alert('Please enter a folder name');
+        return;
+    }
+
+    fetch('/api/images/folders', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+            name: name,
+            parent_id: parentId || null
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('createFolderModal')).hide();
+            document.getElementById('folderName').value = '';
+            loadFolders();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error creating folder:', error);
+        alert('Failed to create folder');
+    });
+}
+
+// ===== IMAGE CROPPING =====
+
+let cropState = {
+    image: null,
+    imageUrl: null,
+    canvas: null,
+    ctx: null,
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    cropX: 0,
+    cropY: 0,
+    cropWidth: 0,
+    cropHeight: 0,
+    scale: 1
+};
+
+function showCropModal() {
+    // Get current image data
+    fetch(`/api/images/${currentImageId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cropState.imageUrl = data.image.url;
+            initCropCanvas();
+
+            // Hide detail modal and show crop modal
+            bootstrap.Modal.getInstance(document.getElementById('imageDetailModal')).hide();
+            const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+            cropModal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading image for crop:', error);
+        alert('Failed to load image');
+    });
+}
+
+function initCropCanvas() {
+    const canvas = document.getElementById('cropCanvas');
+    const ctx = canvas.getContext('2d');
+
+    cropState.canvas = canvas;
+    cropState.ctx = ctx;
+
+    // Load image
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+        cropState.image = img;
+
+        // Calculate scale to fit in modal
+        const maxWidth = 1000;
+        const maxHeight = 600;
+        let scale = 1;
+
+        if (img.width > maxWidth || img.height > maxHeight) {
+            scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+        }
+
+        cropState.scale = scale;
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        // Draw image
+        drawCropCanvas();
+    };
+    img.src = cropState.imageUrl;
+
+    // Remove old event listeners
+    canvas.removeEventListener('mousedown', handleCropMouseDown);
+    canvas.removeEventListener('mousemove', handleCropMouseMove);
+    document.removeEventListener('mouseup', handleCropMouseUp);
+
+    // Add event listeners
+    // mousedown on canvas
+    canvas.addEventListener('mousedown', handleCropMouseDown);
+    // mousemove on canvas
+    canvas.addEventListener('mousemove', handleCropMouseMove);
+    // mouseup on document (so it works even if released outside canvas)
+    document.addEventListener('mouseup', handleCropMouseUp);
+}
+
+function handleCropMouseDown(e) {
+    const rect = cropState.canvas.getBoundingClientRect();
+    cropState.isDragging = true;
+    cropState.startX = e.clientX - rect.left;
+    cropState.startY = e.clientY - rect.top;
+    cropState.cropX = cropState.startX;
+    cropState.cropY = cropState.startY;
+    cropState.cropWidth = 0;
+    cropState.cropHeight = 0;
+}
+
+function handleCropMouseMove(e) {
+    if (!cropState.isDragging) return;
+
+    const rect = cropState.canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+
+    cropState.cropWidth = currentX - cropState.startX;
+    cropState.cropHeight = currentY - cropState.startY;
+
+    // Handle negative width/height (dragging left/up)
+    if (cropState.cropWidth < 0) {
+        cropState.cropX = currentX;
+        cropState.cropWidth = Math.abs(cropState.cropWidth);
+    } else {
+        cropState.cropX = cropState.startX;
+    }
+
+    if (cropState.cropHeight < 0) {
+        cropState.cropY = currentY;
+        cropState.cropHeight = Math.abs(cropState.cropHeight);
+    } else {
+        cropState.cropY = cropState.startY;
+    }
+
+    drawCropCanvas();
+    updateCropDisplay();
+}
+
+function handleCropMouseUp(e) {
+    if (!cropState.isDragging) return;
+
+    cropState.isDragging = false;
+
+    console.log('Crop selection:', {
+        width: cropState.cropWidth,
+        height: cropState.cropHeight,
+        x: cropState.cropX,
+        y: cropState.cropY
+    });
+
+    // Enable crop button if valid selection
+    const btn = document.getElementById('applyCropBtn');
+    if (cropState.cropWidth > 10 && cropState.cropHeight > 10) {
+        btn.disabled = false;
+        console.log('Crop button enabled');
+    } else {
+        btn.disabled = true;
+        console.log('Crop selection too small:', cropState.cropWidth, 'x', cropState.cropHeight);
+    }
+}
+
+function drawCropCanvas() {
+    const { canvas, ctx, image, scale, cropX, cropY, cropWidth, cropHeight } = cropState;
+
+    if (!image) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw image
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    // Draw crop overlay
+    if (cropWidth > 0 && cropHeight > 0) {
+        // Darken outside crop area
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+
+        // Top
+        ctx.fillRect(0, 0, canvas.width, cropY);
+        // Bottom
+        ctx.fillRect(0, cropY + cropHeight, canvas.width, canvas.height - cropY - cropHeight);
+        // Left
+        ctx.fillRect(0, cropY, cropX, cropHeight);
+        // Right
+        ctx.fillRect(cropX + cropWidth, cropY, canvas.width - cropX - cropWidth, cropHeight);
+
+        // Draw crop rectangle
+        ctx.strokeStyle = '#0d6efd';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cropX, cropY, cropWidth, cropHeight);
+    }
+}
+
+function updateCropDisplay() {
+    const { scale, cropX, cropY, cropWidth, cropHeight } = cropState;
+
+    // Convert back to original image coordinates
+    const realX = Math.round(cropX / scale);
+    const realY = Math.round(cropY / scale);
+    const realWidth = Math.round(cropWidth / scale);
+    const realHeight = Math.round(cropHeight / scale);
+
+    document.getElementById('cropX').textContent = realX;
+    document.getElementById('cropY').textContent = realY;
+    document.getElementById('cropWidth').textContent = realWidth;
+    document.getElementById('cropHeight').textContent = realHeight;
+}
+
+function applyCrop() {
+    const { scale, cropX, cropY, cropWidth, cropHeight } = cropState;
+
+    if (cropWidth <= 0 || cropHeight <= 0) {
+        alert('Please select an area to crop');
+        return;
+    }
+
+    // Convert to original image coordinates
+    const realX = Math.round(cropX / scale);
+    const realY = Math.round(cropY / scale);
+    const realWidth = Math.round(cropWidth / scale);
+    const realHeight = Math.round(cropHeight / scale);
+
+    // Disable button and show loading
+    const btn = document.getElementById('applyCropBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+
+    fetch(`/api/images/${currentImageId}/crop`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+            x: realX,
+            y: realY,
+            width: realWidth,
+            height: realHeight
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close crop modal
+            bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+
+            // Reload images
+            loadImages();
+            loadFolders();
+
+            // Show success message
+            alert('Cropped image created successfully!');
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Create Cropped Copy';
+        }
+    })
+    .catch(error => {
+        console.error('Error cropping image:', error);
+        alert('Failed to crop image');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Create Cropped Copy';
+    });
+}
+</script>
+{% endblock %}

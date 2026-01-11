@@ -17,7 +17,13 @@
       "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\" -c:*)",
       "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\":*)",
       "Bash(if not exist \"c:\\\\Users\\\\Miles\\\\Desktop\\\\Personal\\\\CaspioSiteEmbedder\\\\static\\\\uploads\\\\.gitkeep\" echo.)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(venvScriptspip.exe install -r requirements.txt)",
+      "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/pip.exe\" install -r \"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/requirements.txt\")",
+      "Bash(\"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe\" \"c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/app.py\")",
+      "Bash(timeout 5 tail:*)",
+      "Bash(sqlite3:*)",
+      "Bash(c:/Users/Miles/Desktop/Personal/CaspioSiteEmbedder/venv/Scripts/python.exe migrations/migrate_existing_images.py)"
     ],
     "deny": [],
     "ask": []

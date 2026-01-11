@@ -1,4 +1,4 @@
-# CaspioSiteEmbedder - Flask Website Builder CMS
+# PageCraft - Flask Website Builder CMS
 
 ## Overview
 

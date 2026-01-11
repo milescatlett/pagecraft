@@ -20,9 +20,20 @@ ENV/
 *.sqlite3
 instance/
 
+# Database backups (production)
+*.db.backup
+*.db.backup.*
+*.sqlite.backup
+*.sqlite.backup.*
+cms.db.backup*
+
 # User uploads (optional - remove if you want to track uploads)
 static/uploads/*
 !static/uploads/.gitkeep
+
+# Upload backups (production)
+static/uploads.backup/
+static/uploads.backup.*
 
 # IDE and editors
 .vscode/
@@ -60,6 +71,18 @@ build/
 *.bak
 *.tmp
 .cache/
+
+# Production deployment
+deployment_*.log
+migration_*.log
+*.backup
+backup/
+backups/
+
+# Legacy/backup code files
+*_legacy.py
+*_old.py
+*.py.bak
 
 #SSH
 hostinger
