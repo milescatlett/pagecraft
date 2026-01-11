@@ -19,7 +19,9 @@
         <div class="sidebar-footer">
             <div class="user-info">
                 <i class="bi bi-person-circle"></i>
-                <span>{{ current_user.username }}</span>
+                <a href="{{ url_for('users.profile') }}" class="text-white text-decoration-none" title="My Profile">
+                    {{ current_user.username }}
+                </a>
             </div>
             <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
                 <i class="bi bi-box-arrow-left"></i> Logout

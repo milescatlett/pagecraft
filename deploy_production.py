@@ -92,7 +92,11 @@ def run_column_migrations():
     # Check pages table columns
     pages_columns = [col['name'] for col in inspector.get_columns('pages')]
 
+    # Check users table columns
+    users_columns = [col['name'] for col in inspector.get_columns('users')]
+
     migrations = [
+        # Pages table migrations
         {
             'table': 'pages',
             'column': 'page_styles',
@@ -128,6 +132,19 @@ def run_column_migrations():
             'column': 'footer_id',
             'check': 'footer_id' not in pages_columns,
             'sql': 'ALTER TABLE pages ADD COLUMN footer_id INTEGER'
+        },
+        # Users table migrations (password reset tokens)
+        {
+            'table': 'users',
+            'column': 'reset_token',
+            'check': 'reset_token' not in users_columns,
+            'sql': 'ALTER TABLE users ADD COLUMN reset_token VARCHAR(100) UNIQUE'
+        },
+        {
+            'table': 'users',
+            'column': 'reset_token_expires',
+            'check': 'reset_token_expires' not in users_columns,
+            'sql': 'ALTER TABLE users ADD COLUMN reset_token_expires DATETIME'
         }
     ]
 

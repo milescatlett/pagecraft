@@ -17,7 +17,9 @@
         <div class="sidebar-footer">
             <div class="user-info">
                 <i class="bi bi-person-circle"></i>
-                <span>{{ current_user.username }}</span>
+                <a href="{{ url_for('users.profile') }}" class="text-white text-decoration-none" title="My Profile">
+                    {{ current_user.username }}
+                </a>
             </div>
             <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
                 <i class="bi bi-box-arrow-left"></i> Logout
@@ -80,6 +82,9 @@
                                         {% if user.id != current_user.id %}
                                             <button class="btn btn-outline-secondary" onclick="showResetPasswordModal({{ user.id }}, '{{ user.username }}')" title="Reset Password">
                                                 <i class="bi bi-key"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="generateResetLink({{ user.id }}, '{{ user.username }}')" title="Generate Reset Link">
+                                                <i class="bi bi-link-45deg"></i>
                                             </button>
                                             <button class="btn btn-outline-{{ 'warning' if user.is_admin else 'success' }}" onclick="toggleAdmin({{ user.id }})" title="{{ 'Remove Admin' if user.is_admin else 'Make Admin' }}">
                                                 <i class="bi bi-{{ 'shield-minus' if user.is_admin else 'shield-plus' }}"></i>
@@ -189,6 +194,34 @@
     </div>
 </div>
 
+<!-- Reset Link Modal -->
+<div class="modal fade" id="resetLinkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-link-45deg"></i> Password Reset Link</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Share this link with <strong id="resetLinkUsername"></strong> to let them reset their password:</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="resetLinkUrl" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyResetLink()" title="Copy to clipboard">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Important:</strong> This link will expire in <strong>24 hours</strong>. Only share it with the intended user through a secure channel.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // CSRF token helper function
 function getCSRFToken() {
@@ -202,12 +235,13 @@ function getHeaders() {
     };
 }
 
-let createModal, resetModal, deleteModal;
+let createModal, resetModal, deleteModal, resetLinkModal;
 
 document.addEventListener('DOMContentLoaded', function() {
     createModal = new bootstrap.Modal(document.getElementById('createUserModal'));
     resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
     deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    resetLinkModal = new bootstrap.Modal(document.getElementById('resetLinkModal'));
 });
 
 function showCreateUserModal() {
@@ -325,6 +359,49 @@ function deleteUser() {
     .catch(error => {
         console.error('Error:', error);
         alert('Failed to delete user');
+    });
+}
+
+function generateResetLink(userId, username) {
+    fetch('/users/' + userId + '/generate-reset-link', {
+        method: 'POST',
+        headers: getHeaders()
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('resetLinkUsername').textContent = username;
+            document.getElementById('resetLinkUrl').value = data.reset_url;
+            resetLinkModal.show();
+        } else {
+            alert(data.error || 'Failed to generate reset link');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to generate reset link');
+    });
+}
+
+function copyResetLink() {
+    const urlInput = document.getElementById('resetLinkUrl');
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999); // For mobile
+
+    navigator.clipboard.writeText(urlInput.value).then(() => {
+        // Show feedback
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check"></i>';
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-success');
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(() => {
+        alert('Failed to copy to clipboard');
     });
 }
 </script>
