@@ -1044,12 +1044,27 @@ function renderWidgets() {
             renderWidgets();
         });
     } else {
-        canvas.innerHTML = widgets.map((widget, index) => renderWidget(widget, index)).join('');
+        canvas.innerHTML = widgets.map((widget, index) => renderWidget(widget, index)).join('') + `
+            <div class="drop-zone" id="addMoreDropZone" style="padding: 1rem; min-height: 60px;">
+                <i class="bi bi-plus-circle"></i>
+                <small>Drop widgets here to add more</small>
+            </div>
+        `;
 
         // Setup all drop zones after rendering
         setTimeout(() => {
             setupAllDropZones();
             setupWidgetSorting();
+
+            // Setup the "add more" drop zone at the bottom
+            const addMoreZone = document.getElementById('addMoreDropZone');
+            if (addMoreZone) {
+                setupDropZone(addMoreZone, (type, extraData) => {
+                    console.log('Adding widget to root:', type);
+                    widgets.push(createWidget(type, extraData));
+                    renderWidgets();
+                });
+            }
         }, 0);
     }
 }
