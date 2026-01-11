@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_required
 from app.models import User
-from app.extensions import db, limiter
+from app.extensions import db, limiter, csrf
 from app.utils.decorators import admin_required
 from app.utils.validators import validate_username, validate_password
 
@@ -211,6 +211,7 @@ def generate_reset_link(user_id):
 
 
 @bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+@csrf.exempt  # Exempt from CSRF - token in URL provides authentication
 @limiter.limit("10 per minute")
 def reset_password_with_token(token):
     """Reset password using a token (public route - no login required)"""

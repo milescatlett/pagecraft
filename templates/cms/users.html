@@ -206,7 +206,7 @@
                 <p>Share this link with <strong id="resetLinkUsername"></strong> to let them reset their password:</p>
                 <div class="input-group mb-3">
                     <input type="text" class="form-control" id="resetLinkUrl" readonly>
-                    <button class="btn btn-outline-secondary" type="button" onclick="copyResetLink()" title="Copy to clipboard">
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyResetLink(this)" title="Copy to clipboard">
                         <i class="bi bi-clipboard"></i>
                     </button>
                 </div>
@@ -383,14 +383,12 @@ function generateResetLink(userId, username) {
     });
 }
 
-function copyResetLink() {
+function copyResetLink(btn) {
     const urlInput = document.getElementById('resetLinkUrl');
     urlInput.select();
     urlInput.setSelectionRange(0, 99999); // For mobile
 
-    navigator.clipboard.writeText(urlInput.value).then(() => {
-        // Show feedback
-        const btn = event.target.closest('button');
+    function showSuccess() {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="bi bi-check"></i>';
         btn.classList.remove('btn-outline-secondary');
@@ -400,9 +398,23 @@ function copyResetLink() {
             btn.classList.remove('btn-success');
             btn.classList.add('btn-outline-secondary');
         }, 2000);
-    }).catch(() => {
-        alert('Failed to copy to clipboard');
-    });
+    }
+
+    function fallbackCopy() {
+        const success = document.execCommand('copy');
+        if (success) {
+            showSuccess();
+        } else {
+            alert('Failed to copy. Please select and copy manually (Ctrl+C / Cmd+C).');
+        }
+    }
+
+    // Try modern clipboard API first, fall back to execCommand for HTTP
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(urlInput.value).then(showSuccess).catch(fallbackCopy);
+    } else {
+        fallbackCopy();
+    }
 }
 </script>
 {% endblock %}
