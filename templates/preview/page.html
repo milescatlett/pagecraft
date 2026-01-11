@@ -325,7 +325,7 @@
 
         {% elif widget.type == 'accordion' %}
             <div class="accordion mb-3" id="accordion{{ loop.index }}" {{ build_style_attr(widget) }}>
-                {% for item in widget.items %}
+                {% for item in widget.get('items', []) %}
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button{% if not loop.first %} collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.parent.loop.index }}_{{ loop.index }}">
@@ -344,7 +344,7 @@
         {% elif widget.type == 'breadcrumb' %}
             <nav aria-label="breadcrumb" {{ build_style_attr(widget) }}>
                 <ol class="breadcrumb">
-                    {% for item in widget.items %}
+                    {% for item in widget.get('items', []) %}
                     <li class="breadcrumb-item{% if loop.last %} active{% endif %}">
                         {% if loop.last %}
                             {{ item.text }}
