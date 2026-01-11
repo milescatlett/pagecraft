@@ -19,7 +19,9 @@ Flask-WTF==1.2.1
 bleach==6.1.0
 Flask-Talisman==1.1.0
 Flask-Limiter==3.5.0
-python-magic-bin  # File type detection (Windows)
 
 # Image processing
 Pillow==12.1.0
+
+# Note: python-magic (file type detection) is optional and not included
+# The app will work fine without it - it just won't do magic byte validation
