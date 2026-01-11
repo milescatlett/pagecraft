@@ -2,19 +2,26 @@
 import json
 from app.models.menu import Menu, MenuItem
 from app.models.footer import Footer
+from app.models.builder_menu import BuilderMenuMapping
 
 
 class MenuService:
     """Service for handling menu and footer operations"""
 
     @staticmethod
-    def get_page_menus_and_footer(page, site):
+    def get_page_menus_and_footer(page, site, builder_name=None, role=None):
         """
-        Get effective menus and footer for a page, considering page overrides and parent inheritance.
+        Get effective menus and footer for a page, considering:
+        1. User-specific menu mappings (from Caspio Builder or Role fields)
+        2. Page-specific overrides
+        3. Parent page inheritance
+        4. Site-wide defaults
 
         Args:
             page (Page): Page object
             site (Site): Site object
+            builder_name (str, optional): Builder name from Caspio session
+            role (int/str, optional): Role from Caspio session
 
         Returns:
             dict: Dictionary with menu/footer objects and their parsed content/styles
@@ -26,14 +33,30 @@ class MenuService:
             'footer': None, 'footer_content': [], 'footer_styles': {}
         }
 
-        # Get effective menus (page-specific or inherited from parent, then site default)
+        # Check for user-specific menu mapping (builder takes priority over role)
+        user_mapping = None
+        if builder_name or role is not None:
+            user_mapping = BuilderMenuMapping.get_for_user(site.id, builder_name=builder_name, role=role)
+
+        # Get effective menus (builder-specific, then page-specific, then inherited, then site default)
         for position in ['top', 'left', 'right']:
-            menu = page.get_effective_menu(position)
-            if menu == 0:
-                # Explicitly no menu - don't fall back to site default
-                continue
+            menu = None
+
+            # Priority 1: Builder-specific menu (if mapping exists and has a menu for this position)
+            if user_mapping:
+                menu_id = getattr(user_mapping, f'{position}_menu_id')
+                if menu_id:
+                    menu = Menu.query.get(menu_id)
+
+            # Priority 2: Page-specific or inherited menu
             if not menu:
-                # Fall back to site-wide active menu
+                menu = page.get_effective_menu(position)
+                if menu == 0:
+                    # Explicitly no menu - don't fall back to site default
+                    continue
+
+            # Priority 3: Site-wide active menu
+            if not menu:
                 menu = Menu.query.filter_by(site_id=site.id, is_active=True, position=position).first()
 
             if menu:
@@ -45,13 +68,22 @@ class MenuService:
                 except (json.JSONDecodeError, TypeError):
                     result[f'{position}_menu_styles'] = {}
 
-        # Get effective footer (page-specific or inherited from parent, then site default)
-        footer = page.get_effective_footer()
-        if footer == 0:
-            # Explicitly no footer - don't fall back to site default
-            footer = None
-        elif not footer:
-            footer = Footer.query.filter_by(site_id=site.id, is_active=True).first()
+        # Get effective footer (builder-specific, then page-specific, then inherited, then site default)
+        footer = None
+
+        # Priority 1: Builder-specific footer
+        if user_mapping and user_mapping.footer_id:
+            footer = Footer.query.get(user_mapping.footer_id)
+
+        # Priority 2: Page-specific or inherited footer
+        if not footer:
+            footer = page.get_effective_footer()
+            if footer == 0:
+                # Explicitly no footer - don't fall back to site default
+                footer = None
+            elif not footer:
+                # Priority 3: Site-wide active footer
+                footer = Footer.query.filter_by(site_id=site.id, is_active=True).first()
 
         if footer:
             result['footer'] = footer

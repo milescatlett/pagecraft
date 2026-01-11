@@ -2,7 +2,7 @@
 import os
 from flask import Flask, g, request
 from app.config import config
-from app.extensions import db, login_manager, csrf, limiter, talisman
+from app.extensions import db, migrate, login_manager, csrf, limiter, talisman
 
 
 def create_app(config_name=None):
@@ -15,6 +15,7 @@ def create_app(config_name=None):
 
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)

@@ -1,6 +1,6 @@
 """Public blueprint for serving published pages"""
 import json
-from flask import Blueprint, render_template, g, abort
+from flask import Blueprint, render_template, g, abort, session
 from app.models import Site, Page
 from app.services.menu_service import MenuService
 
@@ -32,8 +32,14 @@ def public_page(site_id, slug):
 
     site = Site.query.get_or_404(site_id)
 
-    # Get effective menus and footer (page-specific, inherited, or site default)
-    menus_data = MenuService.get_page_menus_and_footer(page, site)
+    # Get Caspio user from session for user-specific menu rendering
+    caspio_user = session.get('caspio_user')
+    caspio_user_data = session.get('caspio_user_data', {})
+    builder_name = caspio_user_data.get('builder')
+    role = caspio_user_data.get('role')
+
+    # Get effective menus and footer (builder-specific, role-specific, page-specific, inherited, or site default)
+    menus_data = MenuService.get_page_menus_and_footer(page, site, builder_name=builder_name, role=role)
 
     # Parse page content and styles
     content = json.loads(page.content) if page.content else []
@@ -61,7 +67,9 @@ def public_page(site_id, slug):
                          content=content,
                          page_styles=page_styles,
                          footer_content=menus_data['footer_content'],
-                         footer_styles=menus_data['footer_styles'])
+                         footer_styles=menus_data['footer_styles'],
+                         caspio_user=caspio_user,
+                         caspio_user_data=caspio_user_data)
 
 
 @bp.route('/<path:slug>')
@@ -117,8 +125,14 @@ def _serve_domain_homepage(site):
 
 def _serve_domain_page(site, page):
     """Serve a page for a domain-based site (reusable helper)"""
-    # Get effective menus and footer (page-specific, inherited, or site default)
-    menus_data = MenuService.get_page_menus_and_footer(page, site)
+    # Get Caspio user from session for user-specific menu rendering
+    caspio_user = session.get('caspio_user')
+    caspio_user_data = session.get('caspio_user_data', {})
+    builder_name = caspio_user_data.get('builder')
+    role = caspio_user_data.get('role')
+
+    # Get effective menus and footer (builder-specific, role-specific, page-specific, inherited, or site default)
+    menus_data = MenuService.get_page_menus_and_footer(page, site, builder_name=builder_name, role=role)
 
     # Parse page content and styles
     content = json.loads(page.content) if page.content else []
@@ -147,4 +161,6 @@ def _serve_domain_page(site, page):
                          page_styles=page_styles,
                          footer_content=menus_data['footer_content'],
                          footer_styles=menus_data['footer_styles'],
-                         is_domain_based=True)
+                         is_domain_based=True,
+                         caspio_user=caspio_user,
+                         caspio_user_data=caspio_user_data)

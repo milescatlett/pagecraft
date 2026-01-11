@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Menu Mappings - {{ site.name }}{% endblock %}
+
+{% block body %}
+<div class="cms-container">
+    <nav class="cms-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="bi bi-file-earmark-richtext"></i> PageCraft</h4>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="{{ url_for('cms.index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('cms.images') }}"><i class="bi bi-images"></i> Images</a></li>
+            {% if current_user.is_admin %}
+            <li><a href="{{ url_for('users.users_list') }}"><i class="bi bi-people"></i> Users</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('cms.site_detail', site_id=site.id) }}"><i class="bi bi-globe"></i> {{ site.name }}</a></li>
+            <li class="active"><a href="{{ url_for('cms.builder_menus', site_id=site.id) }}"><i class="bi bi-diagram-3"></i> Menu Mappings</a></li>
+            <li><a href="{{ url_for('cms.documentation') }}"><i class="bi bi-journal-text"></i> Documentation</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ current_user.username }}</span>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm w-100">
+                <i class="bi bi-box-arrow-left"></i> Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="cms-main">
+        <div class="cms-header">
+            <div>
+                <h1><i class="bi bi-diagram-3"></i> Menu Mappings</h1>
+                <p class="text-muted">Assign different menus to users based on Builder or Role from Caspio</p>
+            </div>
+            <a href="{{ url_for('cms.site_detail', site_id=site.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Site
+            </a>
+        </div>
+
+        <div class="cms-content">
+            <!-- Info Card -->
+            <div class="alert alert-info mb-4">
+                <h6><i class="bi bi-info-circle"></i> How Menu Mappings Work</h6>
+                <p class="mb-2">When a user logs in through Caspio, their <strong>Builder</strong> and <strong>Role</strong> fields are captured. Based on these, they will see the menus assigned here instead of the site defaults.</p>
+                <ul class="mb-0">
+                    <li><strong>Priority:</strong> Builder matches are checked first, then Role matches</li>
+                    <li>If a user's Builder matches a mapping, they see those menus</li>
+                    <li>If no Builder match but Role matches, they see those menus</li>
+                    <li>If no match is found, they see the site's default menus</li>
+                    <li>Leave a menu field empty to use the site default for that position</li>
+                </ul>
+            </div>
+
+            <!-- Add New Mapping -->
+            <div class="section-card mb-4">
+                <div class="section-header">
+                    <h3><i class="bi bi-plus-circle"></i> Add Menu Mapping</h3>
+                </div>
+                <div class="section-body">
+                    <form id="addMappingForm" onsubmit="createMapping(event)">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Condition Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newConditionType" onchange="toggleConditionInput()">
+                                    <option value="builder">Builder Name</option>
+                                    <option value="role">Role (Number)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2" id="builderInputGroup">
+                                <label class="form-label">Builder Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="newBuilderName"
+                                       placeholder="e.g., NVR INC">
+                                <small class="text-muted">Case-insensitive</small>
+                            </div>
+                            <div class="col-md-2" id="roleInputGroup" style="display: none;">
+                                <label class="form-label">Role Number <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="newRole"
+                                       placeholder="e.g., 2" min="0">
+                                <small class="text-muted">Integer value</small>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Top Menu</label>
+                                <select class="form-select" id="newTopMenu">
+                                    <option value="">-- Site Default --</option>
+                                    {% for menu in top_menus %}
+                                    <option value="{{ menu.id }}">{{ menu.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Left Menu</label>
+                                <select class="form-select" id="newLeftMenu">
+                                    <option value="">-- Site Default --</option>
+                                    {% for menu in left_menus %}
+                                    <option value="{{ menu.id }}">{{ menu.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Right Menu</label>
+                                <select class="form-select" id="newRightMenu">
+                                    <option value="">-- Site Default --</option>
+                                    {% for menu in right_menus %}
+                                    <option value="{{ menu.id }}">{{ menu.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Footer</label>
+                                <select class="form-select" id="newFooter">
+                                    <option value="">-- Site Default --</option>
+                                    {% for footer in footers %}
+                                    <option value="{{ footer.id }}">{{ footer.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus"></i> Add Mapping
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Existing Mappings -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="bi bi-list-ul"></i> Current Mappings</h3>
+                    <span class="badge bg-secondary">{{ mappings|length }} mapping(s)</span>
+                </div>
+                <div class="section-body">
+                    {% if mappings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Condition</th>
+                                    <th>Top Menu</th>
+                                    <th>Left Menu</th>
+                                    <th>Right Menu</th>
+                                    <th>Footer</th>
+                                    <th width="120">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mapping in mappings %}
+                                <tr id="mapping-{{ mapping.id }}">
+                                    <td>
+                                        {% if mapping.builder_name %}
+                                        <span class="badge bg-primary me-1">Builder</span>
+                                        <input type="text" class="form-control form-control-sm d-inline-block" style="width: auto;"
+                                               value="{{ mapping.builder_name }}"
+                                               onchange="updateMapping({{ mapping.id }}, 'builder_name', this.value)">
+                                        {% elif mapping.role is not none %}
+                                        <span class="badge bg-success me-1">Role</span>
+                                        <input type="number" class="form-control form-control-sm d-inline-block" style="width: 80px;"
+                                               value="{{ mapping.role }}"
+                                               onchange="updateMapping({{ mapping.id }}, 'role', this.value)">
+                                        {% else %}
+                                        <span class="text-muted">No condition</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                onchange="updateMapping({{ mapping.id }}, 'top_menu_id', this.value)">
+                                            <option value="">-- Site Default --</option>
+                                            {% for menu in top_menus %}
+                                            <option value="{{ menu.id }}" {% if mapping.top_menu_id == menu.id %}selected{% endif %}>
+                                                {{ menu.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                onchange="updateMapping({{ mapping.id }}, 'left_menu_id', this.value)">
+                                            <option value="">-- Site Default --</option>
+                                            {% for menu in left_menus %}
+                                            <option value="{{ menu.id }}" {% if mapping.left_menu_id == menu.id %}selected{% endif %}>
+                                                {{ menu.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                onchange="updateMapping({{ mapping.id }}, 'right_menu_id', this.value)">
+                                            <option value="">-- Site Default --</option>
+                                            {% for menu in right_menus %}
+                                            <option value="{{ menu.id }}" {% if mapping.right_menu_id == menu.id %}selected{% endif %}>
+                                                {{ menu.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                onchange="updateMapping({{ mapping.id }}, 'footer_id', this.value)">
+                                            <option value="">-- Site Default --</option>
+                                            {% for footer in footers %}
+                                            <option value="{{ footer.id }}" {% if mapping.footer_id == footer.id %}selected{% endif %}>
+                                                {{ footer.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteMapping({{ mapping.id }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-diagram-3" style="font-size: 3rem;"></i>
+                        <p class="mt-3">No menu mappings configured yet.</p>
+                        <p>Add your first mapping above to assign custom menus based on Builder or Role.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+const siteId = {{ site.id }};
+const csrfToken = '{{ csrf_token() }}';
+
+function toggleConditionInput() {
+    const conditionType = document.getElementById('newConditionType').value;
+    const builderGroup = document.getElementById('builderInputGroup');
+    const roleGroup = document.getElementById('roleInputGroup');
+
+    if (conditionType === 'builder') {
+        builderGroup.style.display = 'block';
+        roleGroup.style.display = 'none';
+        document.getElementById('newBuilderName').required = true;
+        document.getElementById('newRole').required = false;
+    } else {
+        builderGroup.style.display = 'none';
+        roleGroup.style.display = 'block';
+        document.getElementById('newBuilderName').required = false;
+        document.getElementById('newRole').required = true;
+    }
+}
+
+function createMapping(e) {
+    e.preventDefault();
+
+    const conditionType = document.getElementById('newConditionType').value;
+    const payload = {
+        top_menu_id: document.getElementById('newTopMenu').value || null,
+        left_menu_id: document.getElementById('newLeftMenu').value || null,
+        right_menu_id: document.getElementById('newRightMenu').value || null,
+        footer_id: document.getElementById('newFooter').value || null
+    };
+
+    if (conditionType === 'builder') {
+        const builderName = document.getElementById('newBuilderName').value.trim();
+        if (!builderName) {
+            alert('Builder name is required');
+            return;
+        }
+        payload.builder_name = builderName;
+    } else {
+        const role = document.getElementById('newRole').value;
+        if (role === '' || role === null) {
+            alert('Role number is required');
+            return;
+        }
+        payload.role = parseInt(role);
+    }
+
+    fetch(`/site/${siteId}/builder-menus/create`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to create mapping');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create mapping');
+    });
+}
+
+function updateMapping(mappingId, field, value) {
+    const data = {};
+
+    // Handle role as integer
+    if (field === 'role') {
+        data[field] = value ? parseInt(value) : null;
+    } else {
+        data[field] = value || null;
+    }
+
+    fetch(`/site/${siteId}/builder-menus/${mappingId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.error || 'Failed to update mapping');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update mapping');
+    });
+}
+
+function deleteMapping(mappingId) {
+    if (!confirm('Are you sure you want to delete this mapping?')) {
+        return;
+    }
+
+    fetch(`/site/${siteId}/builder-menus/${mappingId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`mapping-${mappingId}`).remove();
+        } else {
+            alert(data.error || 'Failed to delete mapping');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete mapping');
+    });
+}
+</script>
+{% endblock %}

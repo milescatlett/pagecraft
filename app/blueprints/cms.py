@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, g
 from flask_login import login_required, current_user
-from app.models import Site, Page, Menu, MenuItem, Footer, Widget
+from app.models import Site, Page, Menu, MenuItem, Footer, Widget, BuilderMenuMapping
 from app.extensions import db, limiter
 from app.services.page_service import PageService
 from app.services.menu_service import MenuService
@@ -490,3 +490,131 @@ def preview_page(page_id):
                          page_styles=page_styles,
                          footer_content=menus_data['footer_content'],
                          footer_styles=menus_data['footer_styles'])
+
+
+# Builder Menu Mapping Routes
+
+@bp.route('/site/<int:site_id>/builder-menus')
+@login_required
+def builder_menus(site_id):
+    """Manage builder-to-menu mappings for a site"""
+    site = Site.query.get_or_404(site_id)
+    mappings = BuilderMenuMapping.query.filter_by(site_id=site_id).order_by(BuilderMenuMapping.builder_name).all()
+    menus = Menu.query.filter_by(site_id=site_id).all()
+    footers = Footer.query.filter_by(site_id=site_id).all()
+
+    # Organize menus by position
+    top_menus = [m for m in menus if m.position == 'top']
+    left_menus = [m for m in menus if m.position == 'left']
+    right_menus = [m for m in menus if m.position == 'right']
+
+    return render_template('cms/builder_menus.html',
+                         site=site,
+                         mappings=mappings,
+                         top_menus=top_menus,
+                         left_menus=left_menus,
+                         right_menus=right_menus,
+                         footers=footers)
+
+
+@bp.route('/site/<int:site_id>/builder-menus/create', methods=['POST'])
+@login_required
+@limiter.limit("30 per minute")
+def create_builder_mapping(site_id):
+    """Create a new builder-to-menu mapping (by builder name or role)"""
+    site = Site.query.get_or_404(site_id)
+    data = request.json
+
+    builder_name = data.get('builder_name', '').strip() if data.get('builder_name') else None
+    role = data.get('role')
+
+    # Must have either builder_name or role
+    if not builder_name and role is None:
+        return jsonify({'success': False, 'error': 'Either builder name or role is required'}), 400
+
+    # Check for duplicates
+    if builder_name:
+        existing = BuilderMenuMapping.query.filter(
+            BuilderMenuMapping.site_id == site_id,
+            BuilderMenuMapping.builder_name.isnot(None),
+            db.func.lower(BuilderMenuMapping.builder_name) == builder_name.lower()
+        ).first()
+        if existing:
+            return jsonify({'success': False, 'error': 'A mapping for this builder already exists'}), 400
+    elif role is not None:
+        existing = BuilderMenuMapping.query.filter_by(site_id=site_id, role=int(role)).first()
+        if existing:
+            return jsonify({'success': False, 'error': 'A mapping for this role already exists'}), 400
+
+    mapping = BuilderMenuMapping(
+        site_id=site_id,
+        builder_name=builder_name,
+        role=int(role) if role is not None else None,
+        top_menu_id=data.get('top_menu_id') or None,
+        left_menu_id=data.get('left_menu_id') or None,
+        right_menu_id=data.get('right_menu_id') or None,
+        footer_id=data.get('footer_id') or None
+    )
+    db.session.add(mapping)
+    db.session.commit()
+
+    return jsonify({'success': True, 'mapping_id': mapping.id})
+
+
+@bp.route('/site/<int:site_id>/builder-menus/<int:mapping_id>', methods=['PUT'])
+@login_required
+@limiter.limit("30 per minute")
+def update_builder_mapping(site_id, mapping_id):
+    """Update a builder-to-menu mapping"""
+    mapping = BuilderMenuMapping.query.filter_by(id=mapping_id, site_id=site_id).first_or_404()
+    data = request.json
+
+    if 'builder_name' in data:
+        new_name = data['builder_name'].strip() if data['builder_name'] else None
+        if new_name and new_name.lower() != (mapping.builder_name or '').lower():
+            # Check for duplicate
+            existing = BuilderMenuMapping.query.filter(
+                BuilderMenuMapping.site_id == site_id,
+                BuilderMenuMapping.id != mapping_id,
+                BuilderMenuMapping.builder_name.isnot(None),
+                db.func.lower(BuilderMenuMapping.builder_name) == new_name.lower()
+            ).first()
+            if existing:
+                return jsonify({'success': False, 'error': 'A mapping for this builder already exists'}), 400
+        mapping.builder_name = new_name
+
+    if 'role' in data:
+        new_role = int(data['role']) if data['role'] is not None else None
+        if new_role is not None and new_role != mapping.role:
+            # Check for duplicate
+            existing = BuilderMenuMapping.query.filter(
+                BuilderMenuMapping.site_id == site_id,
+                BuilderMenuMapping.id != mapping_id,
+                BuilderMenuMapping.role == new_role
+            ).first()
+            if existing:
+                return jsonify({'success': False, 'error': 'A mapping for this role already exists'}), 400
+        mapping.role = new_role
+
+    if 'top_menu_id' in data:
+        mapping.top_menu_id = data['top_menu_id'] or None
+    if 'left_menu_id' in data:
+        mapping.left_menu_id = data['left_menu_id'] or None
+    if 'right_menu_id' in data:
+        mapping.right_menu_id = data['right_menu_id'] or None
+    if 'footer_id' in data:
+        mapping.footer_id = data['footer_id'] or None
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@bp.route('/site/<int:site_id>/builder-menus/<int:mapping_id>', methods=['DELETE'])
+@login_required
+@limiter.limit("30 per minute")
+def delete_builder_mapping(site_id, mapping_id):
+    """Delete a builder-to-menu mapping"""
+    mapping = BuilderMenuMapping.query.filter_by(id=mapping_id, site_id=site_id).first_or_404()
+    db.session.delete(mapping)
+    db.session.commit()
+    return jsonify({'success': True})

@@ -1,6 +1,6 @@
 """API blueprint for file uploads and Caspio integration"""
 import os
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, session
 
 # Optional magic import for file type detection
 try:
@@ -399,4 +399,82 @@ def images_orphans():
     return jsonify({
         'success': True,
         'orphans': orphans
+    })
+
+
+# ===== CASPIO USER SESSION ROUTES =====
+
+from app.extensions import csrf
+
+@bp.route('/caspio/login', methods=['POST'])
+@csrf.exempt  # Exempt since this is called from Caspio DataPage
+@limiter.limit("10 per minute")  # Stricter rate limit for security
+def caspio_user_login():
+    """
+    Set Caspio user in Flask session after Caspio authentication.
+    Called from Caspio login DataPage on successful authentication.
+
+    Security: Requires CASPIO_SESSION_TOKEN to be set and passed as 'token' parameter.
+    """
+    data = request.get_json() if request.is_json else request.form
+
+    # Validate shared secret token
+    expected_token = current_app.config.get('CASPIO_SESSION_TOKEN', '')
+    provided_token = data.get('token', '')
+
+    if not expected_token:
+        current_app.logger.warning('CASPIO_SESSION_TOKEN not configured - rejecting login')
+        return jsonify({'success': False, 'error': 'Service not configured'}), 503
+
+    if not provided_token or provided_token != expected_token:
+        current_app.logger.warning(f'Invalid Caspio session token attempt from {request.remote_addr}')
+        return jsonify({'success': False, 'error': 'Invalid token'}), 403
+
+    username = data.get('username', '').strip()
+    if not username:
+        return jsonify({'success': False, 'error': 'Username required'}), 400
+
+    # Sanitize input - only allow alphanumeric, spaces, and common characters
+    import re
+    builder = data.get('builder', '').strip()
+    if builder and not re.match(r'^[\w\s\-\.\,\&\']+$', builder):
+        return jsonify({'success': False, 'error': 'Invalid builder name'}), 400
+
+    # Store in session (unique per browser/user)
+    session['caspio_user'] = username
+    session['caspio_user_data'] = {
+        'username': username,
+        'email': data.get('email', ''),
+        'role': data.get('role', ''),
+        'name': data.get('name', ''),
+        'builder': builder,  # Builder field for menu mapping
+    }
+    session.permanent = True  # Keep session alive
+
+    return jsonify({
+        'success': True,
+        'username': username,
+        'builder': builder
+    })
+
+
+@bp.route('/caspio/logout', methods=['POST'])
+@csrf.exempt
+def caspio_user_logout():
+    """Clear Caspio user from session"""
+    session.pop('caspio_user', None)
+    session.pop('caspio_user_data', None)
+    return jsonify({'success': True})
+
+
+@bp.route('/caspio/user', methods=['GET'])
+def caspio_user_status():
+    """Get current Caspio user from session (for checking login status)"""
+    caspio_user = session.get('caspio_user')
+    caspio_data = session.get('caspio_user_data', {})
+
+    return jsonify({
+        'logged_in': caspio_user is not None,
+        'username': caspio_user,
+        'user_data': caspio_data
     })

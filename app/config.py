@@ -30,6 +30,10 @@ class Config:
     RATELIMIT_STORAGE_URL = 'memory://'
     RATELIMIT_HEADERS_ENABLED = True
 
+    # Caspio integration - shared secret for session API
+    # Set this via environment variable: CASPIO_SESSION_TOKEN
+    CASPIO_SESSION_TOKEN = os.environ.get('CASPIO_SESSION_TOKEN', '')
+
     # Admin domains - requests from these domains will show the CMS admin interface
     ADMIN_DOMAINS = [
         'localhost', '127.0.0.1', 'localhost:5000', '127.0.0.1:5000',

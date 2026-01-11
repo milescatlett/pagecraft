@@ -5,6 +5,7 @@ from app.models.page import Page, Widget
 from app.models.menu import Menu, MenuItem
 from app.models.footer import Footer
 from app.models.image import Image, ImageFolder
+from app.models.builder_menu import BuilderMenuMapping
 
 __all__ = [
     'User',
@@ -15,5 +16,6 @@ __all__ = [
     'MenuItem',
     'Footer',
     'Image',
-    'ImageFolder'
+    'ImageFolder',
+    'BuilderMenuMapping'
 ]
