@@ -12,6 +12,7 @@ class Menu(db.Model):
     name = db.Column(db.String(100), nullable=False)
     position = db.Column(db.String(20), default='top')  # top, left, right
     is_active = db.Column(db.Boolean, default=True)
+    is_sticky = db.Column(db.Boolean, default=False)  # Sticky at top of page (top menus only)
     content = db.Column(db.Text)  # JSON string of widgets
     menu_styles = db.Column(db.Text)  # JSON string of menu styling
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

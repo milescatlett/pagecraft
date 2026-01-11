@@ -322,6 +322,8 @@ def save_menu(menu_id):
         menu.position = data['position']
     if 'is_active' in data:
         menu.is_active = data['is_active']
+    if 'is_sticky' in data:
+        menu.is_sticky = data['is_sticky']
 
     # Sanitize and save menu styles
     if 'menu_styles' in data:

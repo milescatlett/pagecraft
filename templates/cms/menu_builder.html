@@ -266,6 +266,14 @@
                     </label>
                 </div>
             </div>
+            <div class="mb-3" id="stickyOptionWrapper" {% if menu.position != 'top' %}style="display: none;"{% endif %}>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="menuSticky" {% if menu.is_sticky %}checked{% endif %}>
+                    <label class="form-check-label" for="menuSticky">
+                        Sticky (fixed at top)
+                    </label>
+                </div>
+            </div>
             <button class="btn btn-sm btn-outline-primary w-100" onclick="editMenuStyles()">
                 <i class="bi bi-palette"></i> Menu Styling
             </button>
@@ -581,6 +589,17 @@ document.addEventListener('DOMContentLoaded', function() {
     setupWidgetDragging();
     renderWidgets();
     loadCaspioDatapages();
+
+    // Show/hide sticky option based on menu position
+    document.getElementById('menuPosition').addEventListener('change', function() {
+        const stickyWrapper = document.getElementById('stickyOptionWrapper');
+        if (this.value === 'top') {
+            stickyWrapper.style.display = 'block';
+        } else {
+            stickyWrapper.style.display = 'none';
+            document.getElementById('menuSticky').checked = false;
+        }
+    });
 });
 
 function setupWidgetDragging() {
@@ -2456,6 +2475,7 @@ function saveMenu() {
     const name = document.getElementById('menuName').value;
     const position = document.getElementById('menuPosition').value;
     const isActive = document.getElementById('menuActive').checked;
+    const isSticky = document.getElementById('menuSticky').checked;
 
     if (!name) {
         alert('Please enter a menu name');
@@ -2469,6 +2489,7 @@ function saveMenu() {
             name: name,
             position: position,
             is_active: isActive,
+            is_sticky: isSticky,
             content: widgets,
             menu_styles: menuStyles
         })
