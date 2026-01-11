@@ -95,10 +95,10 @@ def _initialize_database(app):
     # Create uploads folder
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    # Run migrations
-    columns = [col['name'] for col in inspector.get_columns('pages')]
+    # Run migrations for pages table
+    pages_columns = [col['name'] for col in inspector.get_columns('pages')]
 
-    migrations = [
+    pages_migrations = [
         ('parent_id', 'ALTER TABLE pages ADD COLUMN parent_id INTEGER REFERENCES pages(id)'),
         ('top_menu_id', 'ALTER TABLE pages ADD COLUMN top_menu_id INTEGER REFERENCES menus(id)'),
         ('left_menu_id', 'ALTER TABLE pages ADD COLUMN left_menu_id INTEGER REFERENCES menus(id)'),
@@ -107,11 +107,28 @@ def _initialize_database(app):
         ('is_homepage', 'ALTER TABLE pages ADD COLUMN is_homepage BOOLEAN DEFAULT 0'),
     ]
 
-    for col_name, sql in migrations:
-        if col_name not in columns:
+    for col_name, sql in pages_migrations:
+        if col_name not in pages_columns:
             with db.engine.connect() as conn:
                 conn.execute(text(sql))
                 conn.commit()
+
+    # Run migrations for users table (password reset tokens)
+    users_columns = [col['name'] for col in inspector.get_columns('users')]
+
+    if 'reset_token' not in users_columns:
+        with db.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)'))
+            conn.commit()
+        # Create unique index separately (SQLite doesn't allow UNIQUE in ALTER TABLE)
+        with db.engine.connect() as conn:
+            conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS ix_users_reset_token ON users(reset_token)'))
+            conn.commit()
+
+    if 'reset_token_expires' not in users_columns:
+        with db.engine.connect() as conn:
+            conn.execute(text('ALTER TABLE users ADD COLUMN reset_token_expires DATETIME'))
+            conn.commit()
 
     # Create default admin user if no users exist
     if User.query.count() == 0:

@@ -134,11 +134,12 @@ def run_column_migrations():
             'sql': 'ALTER TABLE pages ADD COLUMN footer_id INTEGER'
         },
         # Users table migrations (password reset tokens)
+        # Note: reset_token column added without UNIQUE - index created separately for SQLite compatibility
         {
             'table': 'users',
             'column': 'reset_token',
             'check': 'reset_token' not in users_columns,
-            'sql': 'ALTER TABLE users ADD COLUMN reset_token VARCHAR(100) UNIQUE'
+            'sql': 'ALTER TABLE users ADD COLUMN reset_token VARCHAR(100)'
         },
         {
             'table': 'users',
@@ -158,6 +159,16 @@ def run_column_migrations():
             except Exception as e:
                 print(f"[X] Failed to add {migration['table']}.{migration['column']}: {e}")
                 db.session.rollback()
+
+    # Create unique index for reset_token (SQLite doesn't allow UNIQUE in ALTER TABLE)
+    if 'reset_token' not in users_columns:
+        try:
+            db.session.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS ix_users_reset_token ON users(reset_token)'))
+            db.session.commit()
+            print("[OK] Created unique index on users.reset_token")
+        except Exception as e:
+            print(f"[X] Failed to create index: {e}")
+            db.session.rollback()
 
     if not migrations_run:
         print("\n[OK] All columns already exist")
