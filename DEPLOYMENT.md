@@ -223,7 +223,7 @@ gunicorn -w 4 -b 0.0.0.0:5000 app:app
 
 ## Sample Systemd Service File
 
-Create `/etc/systemd/system/caspio-cms.service`:
+Create `/etc/systemd/system/cms.service`:
 
 ```ini
 [Unit]
@@ -232,9 +232,9 @@ After=network.target
 
 [Service]
 User=www-data
-WorkingDirectory=/var/www/PageCraft
-Environment="PATH=/var/www/PageCraft/venv/bin"
-ExecStart=/var/www/PageCraft/venv/bin/gunicorn -w 4 -b 0.0.0.0:5000 app:app
+WorkingDirectory=/var/www/cms
+Environment="PATH=/var/www/cms/venv/bin"
+ExecStart=/var/www/cms/venv/bin/gunicorn -w 4 -b 0.0.0.0:5000 app:app
 
 [Install]
 WantedBy=multi-user.target
@@ -242,8 +242,8 @@ WantedBy=multi-user.target
 
 Enable and start:
 ```bash
-sudo systemctl enable caspio-cms
-sudo systemctl start caspio-cms
+sudo systemctl enable cms
+sudo systemctl start cms
 ```
 
 ## Questions?

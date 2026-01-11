@@ -28,7 +28,7 @@ fi
 
 echo ""
 echo "[4] Restarting the application service..."
-sudo systemctl restart caspio-cms
+sudo systemctl restart cms
 
 echo ""
 echo "[5] Waiting 3 seconds for service to start..."
@@ -36,7 +36,7 @@ sleep 3
 
 echo ""
 echo "[6] Checking service status..."
-sudo systemctl status caspio-cms --no-pager
+sudo systemctl status cms --no-pager
 
 echo ""
 echo "=========================================="

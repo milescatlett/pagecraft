@@ -9,7 +9,7 @@ echo ""
 
 # Step 1: Check if the service is running
 echo "[1] Checking service status..."
-sudo systemctl status caspio-cms
+sudo systemctl status cms
 
 echo ""
 echo "=========================================="
@@ -17,7 +17,7 @@ echo ""
 
 # Step 2: Check recent logs for errors
 echo "[2] Checking last 50 lines of service logs..."
-sudo journalctl -u caspio-cms -n 50 --no-pager
+sudo journalctl -u cms -n 50 --no-pager
 
 echo ""
 echo "=========================================="
@@ -51,7 +51,7 @@ echo "=========================================="
 echo "Diagnostic complete!"
 echo ""
 echo "Common fixes:"
-echo "1. If service is not running: sudo systemctl restart caspio-cms"
+echo "1. If service is not running: sudo systemctl restart cms"
 echo "2. If import errors: Check that all dependencies are installed in venv"
 echo "3. If permission errors: Check file ownership in /var/www/cms"
 echo ""
